@@ -1,12 +1,36 @@
 export interface Product {
-  id: string;
-  name: string;
-  barcode: string;
-  price: number;
-  stock: number;
-  category: string;
-  minStock: number;
-  createdAt: string;
+    id:             number;
+    documentId:     string;
+    descripcion:    string;
+    unidadMedida:   string;
+    precioUnitario: number;
+    stock:          string;
+    createdAt:      Date;
+    updatedAt:      Date;
+    publishedAt:    Date;
+    barCode:        string;
+    stockMin:       number;
+    category:       Category;
+}
+// export interface Product {
+//   id: string;
+//   name: string;
+//   barcode: string;
+//   price: number;
+//   stock: number;
+//   category: string;
+//   minStock: number;
+//   createdAt: string;
+// }
+
+export interface Category {
+    id:          number;
+    documentId:  string;
+    descripcion: string;
+    estado:      boolean;
+    createdAt:   Date;
+    updatedAt:   Date;
+    publishedAt: Date;
 }
 
 export interface Customer {
@@ -19,7 +43,7 @@ export interface Customer {
 }
 
 export interface SaleItem {
-  productId: string;
+  productId: number;
   productName: string;
   quantity: number;
   price: number;

@@ -1,21 +1,44 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Minus, Plus, Trash2, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import { Product, SaleItem, Sale } from '../../types';
+import axios from 'axios';
 
 interface POSProps {
-  products: Product[];
   onSale: (sale: Sale) => void;
 }
 
-export const POS: React.FC<POSProps> = ({ products, onSale }) => {
+export const POS: React.FC<POSProps> = ({onSale }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+  const [products, setProducts] = useState<Product[]>([]);
 
+  const obtenerProductos = async ()=>{
+
+    const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products?populate=category`,{
+        // headers: {
+        //   Authorization: `Bearer ${localStorage.getItem("token")}`
+        // }
+    });
+
+    console.log('Respuesta de la API:', response.data);
+    setProducts(response.data.data); 
+    
+  }
+
+  useEffect(()=>{
+    obtenerProductos();
+  },[]);
+ 
   const filteredProducts = useMemo(() => {
+    // Verificar que products sea un array antes de filtrar
+    if (!Array.isArray(products)) {
+      return [];
+    }
+    
     return products.filter(product => 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.barcode.includes(searchTerm)
+      product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.barCode.includes(searchTerm)
     );
   }, [products, searchTerm]);
 
@@ -27,7 +50,7 @@ export const POS: React.FC<POSProps> = ({ products, onSale }) => {
     const existingItem = cart.find(item => item.productId === product.id);
     
     if (existingItem) {
-      if (existingItem.quantity < product.stock) {
+      if (existingItem.quantity < parseInt(product.stock)) {
         setCart(cart.map(item =>
           item.productId === product.id
             ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
@@ -35,25 +58,25 @@ export const POS: React.FC<POSProps> = ({ products, onSale }) => {
         ));
       }
     } else {
-      if (product.stock > 0) {
+      if (parseInt(product.stock) > 0) {
         setCart([...cart, {
           productId: product.id,
-          productName: product.name,
+          productName: product.descripcion,
           quantity: 1,
-          price: product.price,
-          subtotal: product.price
+          price: product.precioUnitario,
+          subtotal: product.precioUnitario
         }]);
       }
     }
   };
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
+  const updateQuantity = (productId: number, newQuantity: number) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
     if (newQuantity === 0) {
       setCart(cart.filter(item => item.productId !== productId));
-    } else if (newQuantity <= product.stock) {
+    } else if (newQuantity <= parseInt(product.stock)) {
       setCart(cart.map(item =>
         item.productId === productId
           ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
@@ -62,7 +85,7 @@ export const POS: React.FC<POSProps> = ({ products, onSale }) => {
     }
   };
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = (productId: number) => {
     setCart(cart.filter(item => item.productId !== productId));
   };
 
@@ -109,10 +132,10 @@ export const POS: React.FC<POSProps> = ({ products, onSale }) => {
                 onClick={() => addToCart(product)}
                 className="bg-white rounded-lg border border-gray-200 p-4 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200"
               >
-                <h3 className="font-semibold text-gray-900 mb-2 truncate">{product.name}</h3>
+                <h3 className="font-semibold text-gray-900 mb-2 truncate">{product.descripcion} {product.unidadMedida}</h3>
                 <p className="text-sm text-gray-600 mb-1">Stock: {product.stock}</p>
-                <p className="text-lg font-bold text-blue-600">${product.price.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-1">{product.category}</p>
+                <p className="text-lg font-bold text-blue-600">${product.precioUnitario.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">{product.category.descripcion}</p>
               </div>
             ))}
           </div>

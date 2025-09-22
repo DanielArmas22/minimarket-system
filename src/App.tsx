@@ -75,7 +75,7 @@ function App() {
       case 'dashboard':
         return <Dashboard stats={stats} />;
       case 'pos':
-        return <POS products={products} onSale={handleSale} />;
+        return <POS onSale={handleSale} />;
       case 'products':
         return (
           <Products
