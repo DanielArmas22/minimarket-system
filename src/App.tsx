@@ -8,6 +8,8 @@ import { Customers } from './components/Customers/Customers';
 import { Sales } from './components/Sales/Sales';
 import { dataService } from './services/dataService';
 import { Product, Customer, Sale, DashboardStats } from './types';
+import { Login } from './Auth/Login';
+import {onlogout} from './Auth/onLogout';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -17,6 +19,12 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('jwt'));
+  const handleLogout = () => {
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+  };
   const [stats, setStats] = useState<DashboardStats>({
     todaySales: 0,
     todayTransactions: 0,
@@ -106,6 +114,7 @@ function App() {
           isMobile={true} 
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           lowStockCount={stats.lowStockItems}
+          onLogout={handleLogout}
         />
         
         <main className="pb-20">
@@ -120,6 +129,10 @@ function App() {
       </div>
     );
   }
+  
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -130,6 +143,7 @@ function App() {
           isMobile={false} 
           onMenuToggle={() => {}}
           lowStockCount={stats.lowStockItems}
+          onLogout={handleLogout}
         />
         
         <main className="flex-1 overflow-auto">
