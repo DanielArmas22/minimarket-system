@@ -6,6 +6,7 @@ import { POS } from './components/POS/POS';
 import { Products } from './components/Products/Products';
 import { Customers } from './components/Customers/Customers';
 import { Sales } from './components/Sales/Sales';
+import { Roles } from './components/Roles/Roles';
 import { dataService } from './services/dataService';
 import { Product, Customer, Sale, DashboardStats } from './types';
 
@@ -94,6 +95,8 @@ function App() {
         );
       case 'sales':
         return <Sales sales={sales} />;
+      case 'roles':
+        return <Roles />;
       default:
         return <Dashboard stats={stats} />;
     }
