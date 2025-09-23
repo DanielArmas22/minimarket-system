@@ -1,16 +1,16 @@
 export interface Product {
-    id:             number;
-    documentId:     string;
-    descripcion:    string;
-    unidadMedida:   string;
-    precioUnitario: number;
-    stock:          string;
-    createdAt:      Date;
-    updatedAt:      Date;
-    publishedAt:    Date;
-    barCode:        string;
-    stockMin:       number;
-    category:       Category;
+  id: number;
+  documentId: string;
+  descripcion: string;
+  unidadMedida: string;
+  precioUnitario: number;
+  stock: string;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
+  barCode: string;
+  stockMin: number;
+  category: Category;
 }
 // export interface Product {
 //   id: string;
@@ -24,22 +24,34 @@ export interface Product {
 // }
 
 export interface Category {
-    id:          number;
-    documentId:  string;
-    descripcion: string;
-    estado:      boolean;
-    createdAt:   Date;
-    updatedAt:   Date;
-    publishedAt: Date;
+  id: number;
+  documentId: string;
+  descripcion: string;
+  estado: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
 }
 
 export interface Customer {
   id: string;
-  name: string;
+  username: string;
+  name?: string;
   email: string;
-  phone: string;
-  address: string;
+  phone?: string;
+  address?: string;
+  estado: boolean;
+  blocked: boolean;
+  confirmed: boolean;
+  role?: Role;
   createdAt: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+  type?: string;
 }
 
 export interface SaleItem {
@@ -57,12 +69,11 @@ export interface Sale {
   customerId?: string;
   customerName?: string;
   date: string;
-  paymentMethod: 'cash' | 'card' | 'transfer';
+  paymentMethod: "cash" | "card" | "transfer";
 }
 
 export interface DashboardStats {
   todaySales: number;
   todayTransactions: number;
-  lowStockItems: number;
   totalProducts: number;
 }

@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Navigation } from './components/Layout/Navigation';
-import { Header } from './components/Layout/Header';
-import { Dashboard } from './components/Dashboard/Dashboard';
-import { POS } from './components/POS/POS';
-import { Products } from './components/Products/Products';
-import { Customers } from './components/Customers/Customers';
-import { Sales } from './components/Sales/Sales';
-import { dataService } from './services/dataService';
-import { Product, Customer, Sale, DashboardStats } from './types';
+import React, { useState, useEffect } from "react";
+import { Navigation } from "./components/Layout/Navigation";
+import { Header } from "./components/Layout/Header";
+import { Dashboard } from "./components/Dashboard/Dashboard";
+import { POS } from "./components/POS/POS";
+import { Products } from "./components/Products/Products";
+import { Customers } from "./components/Customers/Customers";
+import { Sales } from "./components/Sales/Sales";
+import { UserList } from "./components/users";
+import { dataService } from "./services/dataService";
+import { Product, Customer, Sale, DashboardStats } from "./types";
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -21,7 +22,7 @@ function App() {
     todaySales: 0,
     todayTransactions: 0,
     lowStockItems: 0,
-    totalProducts: 0
+    totalProducts: 0,
   });
 
   useEffect(() => {
@@ -29,12 +30,12 @@ function App() {
       setIsMobile(window.innerWidth < 768);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    dataService.initializeSampleData();
+    // dataService.initializeSampleData();
     loadData();
   }, []);
 
@@ -72,11 +73,11 @@ function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case "dashboard":
         return <Dashboard stats={stats} />;
-      case 'pos':
+      case "pos":
         return <POS onSale={handleSale} />;
-      case 'products':
+      case "products":
         return (
           <Products
             products={products}
@@ -84,7 +85,7 @@ function App() {
             onDeleteProduct={handleDeleteProduct}
           />
         );
-      case 'customers':
+      case "customers":
         return (
           <Customers
             customers={customers}
@@ -92,8 +93,10 @@ function App() {
             onDeleteCustomer={handleDeleteCustomer}
           />
         );
-      case 'sales':
+      case "sales":
         return <Sales sales={sales} />;
+      case "users":
+        return <UserList />;
       default:
         return <Dashboard stats={stats} />;
     }
@@ -102,19 +105,17 @@ function App() {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header 
-          isMobile={true} 
+        <Header
+          isMobile={true}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           lowStockCount={stats.lowStockItems}
         />
-        
-        <main className="pb-20">
-          {renderContent()}
-        </main>
-        
-        <Navigation 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
+
+        <main className="pb-20">{renderContent()}</main>
+
+        <Navigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           isMobile={true}
         />
       </div>
@@ -124,17 +125,15 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
       <div className="flex-1 flex flex-col">
-        <Header 
-          isMobile={false} 
+        <Header
+          isMobile={false}
           onMenuToggle={() => {}}
           lowStockCount={stats.lowStockItems}
         />
-        
-        <main className="flex-1 overflow-auto">
-          {renderContent()}
-        </main>
+
+        <main className="flex-1 overflow-auto">{renderContent()}</main>
       </div>
     </div>
   );
