@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Navigation } from "./components/Layout/Navigation";
+import { UserList } from "./components/users";
 import { Header } from "./components/Layout/Header";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { POS } from "./components/POS/POS";
 import { Products } from "./components/Products/Products";
 import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
-import { UserList } from "./components/users";
 import { dataService } from "./services/dataService";
 import { Product, Customer, Sale, DashboardStats } from "./types";
 import { Login } from "./Auth/Login";
-import { onLogout } from "@/Auth/onLogout";
+import onLogout from "./Auth/onLogout";
+
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);

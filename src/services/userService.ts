@@ -98,7 +98,7 @@ class UserService {
     });
   }
 
-  // Obtener roles disponibles
+  // Obtener roles disponibles (incluye roles por defecto y personalizados de Strapi)
   async getRoles(): Promise<RoleResponse> {
     return this.makeRequest<RoleResponse>('/users-permissions/roles');
   }
