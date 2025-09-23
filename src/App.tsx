@@ -11,7 +11,7 @@ import { dataService } from "./services/dataService";
 import { Product, Customer, Sale, DashboardStats } from "./types";
 import { Login } from "./Auth/Login";
 import onLogout from "./Auth/onLogout";
-
+import { Roles } from "./components/Roles/Roles";
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -106,6 +106,8 @@ function App() {
         return <Sales sales={sales} />;
       case "users":
         return <UserList />;
+      case "roles":
+        return <Roles />;
       default:
         return <Dashboard stats={stats} />;
     }

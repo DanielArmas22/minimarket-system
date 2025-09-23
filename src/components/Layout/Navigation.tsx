@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart, Settings, UserCog } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart, Settings, Shield, UserCog } from 'lucide-react';
 
 interface NavigationProps {
   activeTab: string;
@@ -14,6 +14,7 @@ const navItems = [
   { id: 'customers', label: 'Clientes', icon: Users },
   { id: 'sales', label: 'Ventas', icon: BarChart },
   { id: 'users', label: 'Usuarios', icon: UserCog },
+  { id: 'roles', label: 'Roles', icon: Shield },
 ];
 
 export const Navigation: React.FC<NavigationProps> = ({ 
