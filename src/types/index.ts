@@ -53,11 +53,12 @@ export interface SaleItem {
 export interface Sale {
   id: string;
   items: SaleItem[];
+  documentId?: string;
   total: number;
   customerId?: string;
   customerName?: string;
   date: string;
-  paymentMethod: 'cash' | 'card' | 'transfer';
+  paymentMethod: number | null; // Cambiar a ID numérico para que coincida con typePayment
 }
 
 export interface DashboardStats {
@@ -65,4 +66,15 @@ export interface DashboardStats {
   todayTransactions: number;
   lowStockItems: number;
   totalProducts: number;
+}
+
+export interface typePayment{
+    id:          number;
+    documentId:  string;
+    descripcion: string;
+    createdAt:   Date;
+    updatedAt:   Date;
+    publishedAt: Date;
+    estado:      boolean;
+
 }
