@@ -9,7 +9,8 @@ import { Sales } from "./components/Sales/Sales";
 import { UserList } from "./components/users";
 import { dataService } from "./services/dataService";
 import { Product, Customer, Sale, DashboardStats } from "./types";
-
+import { Login } from "./Auth/Login";
+import { onLogout } from "@/Auth/onLogout";
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -18,10 +19,17 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("jwt")
+  );
+  const handleLogout = () => {
+    localStorage.removeItem("jwt");
+    localStorage.removeItem("user");
+    setIsAuthenticated(false);
+  };
   const [stats, setStats] = useState<DashboardStats>({
     todaySales: 0,
     todayTransactions: 0,
-    lowStockItems: 0,
     totalProducts: 0,
   });
 
@@ -52,7 +60,7 @@ function App() {
   };
 
   const handleDeleteProduct = (productId: string) => {
-    dataService.deleteProduct(productId);
+    // dataService.deleteProduct(productId);
     loadData();
   };
 
@@ -108,7 +116,8 @@ function App() {
         <Header
           isMobile={true}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-          lowStockCount={stats.lowStockItems}
+          lowStockCount={0}
+          onLogout={handleLogout}
         />
 
         <main className="pb-20">{renderContent()}</main>
@@ -122,6 +131,10 @@ function App() {
     );
   }
 
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
@@ -130,7 +143,8 @@ function App() {
         <Header
           isMobile={false}
           onMenuToggle={() => {}}
-          lowStockCount={stats.lowStockItems}
+          lowStockCount={0}
+          onLogout={handleLogout}
         />
 
         <main className="flex-1 overflow-auto">{renderContent()}</main>

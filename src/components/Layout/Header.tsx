@@ -5,9 +5,10 @@ interface HeaderProps {
   isMobile: boolean;
   onMenuToggle: () => void;
   lowStockCount: number;
+  onLogout?: () => void; 
 }
 
-export const Header: React.FC<HeaderProps> = ({ isMobile, onMenuToggle, lowStockCount }) => {
+export const Header: React.FC<HeaderProps> = ({ isMobile, onMenuToggle, lowStockCount, onLogout, }) => {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 md:px-6">
       <div className="flex items-center justify-between">
@@ -44,6 +45,15 @@ export const Header: React.FC<HeaderProps> = ({ isMobile, onMenuToggle, lowStock
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-medium">A</span>
           </div>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Cerrar sesión
+            </button>
+          )}
         </div>
       </div>
     </header>
