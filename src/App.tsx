@@ -9,7 +9,7 @@ import { Sales } from './components/Sales/Sales';
 import { dataService } from './services/dataService';
 import { Product, Customer, Sale, DashboardStats } from './types';
 import { Login } from './Auth/Login';
-import {onlogout} from './Auth/onLogout';
+import  onLogout  from "./Auth/onLogout"; 
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -114,7 +114,7 @@ function App() {
           isMobile={true} 
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           lowStockCount={stats.lowStockItems}
-          onLogout={handleLogout}
+          onLogout={onLogout}
         />
         
         <main className="pb-20">
