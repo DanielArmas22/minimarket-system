@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Minus, Plus, Trash2, CreditCard, Banknote, Smartphone } from 'lucide-react';
-import { Product, SaleItem, Sale } from '../../types';
+import { Product, SaleItem, Sale, typePayment } from '../../types';
 import axios from 'axios';
 
 interface POSProps {
@@ -10,8 +10,10 @@ interface POSProps {
 export const POS: React.FC<POSProps> = ({onSale }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<SaleItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<number | null>(null); // Cambiar a ID numérico
   const [products, setProducts] = useState<Product[]>([]);
+  const [typePayment, setTypePayment] = useState<typePayment[]>([]);
+
 
   const obtenerProductos = async ()=>{
 
@@ -21,6 +23,13 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
         // }
     });
 
+    const responsePayment = await axios.get(`${import.meta.env.VITE_URL_API}/api/type-buys`);
+
+    setTypePayment(responsePayment.data.data);
+    // Establecer el primer tipo de pago como predeterminado
+    if (responsePayment.data.data.length > 0) {
+      setPaymentMethod(responsePayment.data.data[0].id);
+    }
     console.log('Respuesta de la API:', response.data);
     setProducts(response.data.data); 
     
@@ -75,7 +84,7 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
     if (!product) return;
 
     if (newQuantity === 0) {
-      setCart(cart.filter(item => item.productId !== productId));
+      setCart(cart.filter(item => item.productId != productId));
     } else if (newQuantity <= parseInt(product.stock)) {
       setCart(cart.map(item =>
         item.productId === productId
@@ -89,7 +98,7 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
     setCart(cart.filter(item => item.productId !== productId));
   };
 
-  const processSale = () => {
+  const processSale = async () => {
     if (cart.length === 0) return;
 
     const sale: Sale = {
@@ -100,6 +109,19 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
       paymentMethod
     };
 
+    const saleData = {
+      data: {  // <- Agregar esta línea
+        fechaVenta: new Date().toISOString(),
+        totalVenta: cartTotal,  
+        productosVendidos: cart,
+        tipoPago: paymentMethod // Enviar el ID del tipo de pago seleccionado
+      }  // <- Cerrar el objeto data
+    };
+
+    const response = await axios.post(`${import.meta.env.VITE_URL_API}/api/sales`, saleData);
+
+    console.log('Venta procesada:', response.data);
+    console.log('Venta procesada:', saleData);
     onSale(sale);
     setCart([]);
     setSearchTerm('');
@@ -196,42 +218,30 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">Método de Pago</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`flex flex-col items-center p-3 rounded-lg border transition-colors ${
-                      paymentMethod === 'cash'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    <Banknote className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Efectivo</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setPaymentMethod('card')}
-                    className={`flex flex-col items-center p-3 rounded-lg border transition-colors ${
-                      paymentMethod === 'card'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    <CreditCard className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Tarjeta</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setPaymentMethod('transfer')}
-                    className={`flex flex-col items-center p-3 rounded-lg border transition-colors ${
-                      paymentMethod === 'transfer'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    <Smartphone className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Transfer.</span>
-                  </button>
+                <div className={`grid gap-2 ${typePayment.length <= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {typePayment.map((payment) => (
+                    <button
+                      key={payment.id}
+                      onClick={() => setPaymentMethod(payment.id)}
+                      className={`flex flex-col items-center p-3 rounded-lg border transition-colors ${
+                        paymentMethod === payment.id
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      {/* Iconos dinámicos basados en el nombre del tipo de pago */}
+                      {payment.descripcion?.toLowerCase().includes('efectivo') || payment.descripcion?.toLowerCase().includes('cash') ? (
+                        <Banknote className="h-5 w-5 mb-1" />
+                      ) : payment.descripcion?.toLowerCase().includes('tarjeta') || payment.descripcion?.toLowerCase().includes('card') ? (
+                        <CreditCard className="h-5 w-5 mb-1" />
+                      ) : payment.descripcion?.toLowerCase().includes('transfer') || payment.descripcion?.toLowerCase().includes('yape') || payment.descripcion?.toLowerCase().includes('plin') ? (
+                        <Smartphone className="h-5 w-5 mb-1" />
+                      ) : (
+                        <CreditCard className="h-5 w-5 mb-1" />
+                      )}
+                      <span className="text-xs text-center">{payment.descripcion}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 

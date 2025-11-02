@@ -65,11 +65,12 @@ export interface SaleItem {
 export interface Sale {
   id: string;
   items: SaleItem[];
+  documentId?: string;
   total: number;
   customerId?: string;
   customerName?: string;
   date: string;
-  paymentMethod: "cash" | "card" | "transfer";
+  paymentMethod: number | null; // Cambiar a ID numérico para que coincida con typePayment
 }
 
 export interface DashboardStats {
@@ -78,94 +79,13 @@ export interface DashboardStats {
   totalProducts: number;
 }
 
-// Interfaces para el sistema de roles
-export interface RolePermissions {
-  dashboard: {
-    ver: boolean;
-    crear: boolean;
-    editar: boolean;
-    eliminar: boolean;
-  };
-  productos: {
-    ver: boolean;
-    crear: boolean;
-    editar: boolean;
-    eliminar: boolean;
-  };
-  ventas: {
-    ver: boolean;
-    crear: boolean;
-    editar: boolean;
-    eliminar: boolean;
-  };
-  clientes: {
-    ver: boolean;
-    crear: boolean;
-    editar: boolean;
-    eliminar: boolean;
-  };
-  reportes: {
-    ver: boolean;
-    crear: boolean;
-    editar: boolean;
-    eliminar: boolean;
-  };
-  configuracion: {
-    ver: boolean;
-    crear: boolean;
-    editar: boolean;
-    eliminar: boolean;
-  };
-}
-
-export interface Role {
+export interface typePayment {
   id: number;
   documentId: string;
-  nombre: string;
-  descripcion?: string;
-  permisos: RolePermissions;
-  activo: boolean;
-  nivel: number;
+  descripcion: string;
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date;
-}
+  estado: boolean;
 
-export interface CreateRoleRequest {
-  nombre: string;
-  descripcion?: string;
-  permisos: RolePermissions;
-  activo?: boolean;
-  nivel?: number;
-}
-
-export interface UpdateRoleRequest {
-  nombre?: string;
-  descripcion?: string;
-  permisos?: RolePermissions;
-  activo?: boolean;
-  nivel?: number;
-}
-
-// Respuestas de la API de Strapi
-export interface StrapiResponse<T> {
-  data: T;
-  meta?: {
-    pagination?: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
-  };
-}
-
-export interface StrapiError {
-  data: null;
-  error: {
-    status: number;
-    name: string;
-    message: string;
-    details?: any;
-  };
 }
