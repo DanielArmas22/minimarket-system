@@ -87,5 +87,34 @@ export interface typePayment {
   updatedAt: Date;
   publishedAt: Date;
   estado: boolean;
+}
 
+export interface CashRegister {
+  id: number;
+  documentId?: string;
+  openingDate: string;
+  closingDate?: string;
+  initialAmount: number;
+  expectedAmount?: number;
+  actualAmount?: number;
+  difference?: number;
+  status: 'open' | 'closed';
+  notes?: string;
+  users_permissions_user?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  sales?: Sale[];
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface CashRegisterSummary {
+  initialAmount: number;
+  totalSales: number;
+  expectedAmount: number;
+  actualAmount: number;
+  difference: number;
 }

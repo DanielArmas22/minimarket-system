@@ -7,6 +7,7 @@ import { POS } from "./components/POS/POS";
 import { Products } from "./components/Products/Products";
 import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
+import { CashRegister } from "./components/CashRegister/CashRegister";
 import { dataService } from "./services/dataService";
 import { Product, Customer, Sale, DashboardStats } from "./types";
 import { Login } from "./Auth/Login";
@@ -86,6 +87,8 @@ function App() {
         return <Dashboard stats={stats} />;
       case "pos":
         return <POS onSale={handleSale} />;
+      case "cash-register":
+        return <CashRegister />;
       case "products":
         return (
           <Products
