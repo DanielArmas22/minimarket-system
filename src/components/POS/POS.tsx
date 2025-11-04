@@ -16,23 +16,37 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
 
 
   const obtenerProductos = async ()=>{
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products?populate=category`,{
+          // headers: {
+          //   Authorization: `Bearer ${localStorage.getItem("token")}`
+          // }
+      });
 
-    const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products?populate=category`,{
-        // headers: {
-        //   Authorization: `Bearer ${localStorage.getItem("token")}`
-        // }
-    });
+      const responsePayment = await axios.get(`${import.meta.env.VITE_URL_API}/api/type-buys`);
 
-    const responsePayment = await axios.get(`${import.meta.env.VITE_URL_API}/api/type-buys`);
+      console.log('Respuesta productos:', response.data);
+      console.log('Respuesta pagos:', responsePayment.data);
 
-    setTypePayment(responsePayment.data.data);
-    // Establecer el primer tipo de pago como predeterminado
-    if (responsePayment.data.data.length > 0) {
-      setPaymentMethod(responsePayment.data.data[0].id);
+      // Validar y establecer productos
+      if (response.data && response.data.data) {
+        setProducts(response.data.data);
+      }
+
+      // Validar y establecer tipos de pago
+      if (responsePayment.data && responsePayment.data.data) {
+        setTypePayment(responsePayment.data.data);
+        // Establecer el primer tipo de pago como predeterminado
+        if (responsePayment.data.data.length > 0) {
+          setPaymentMethod(responsePayment.data.data[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error al obtener datos:', error);
+      // Asegurar que los estados tengan valores por defecto
+      setProducts([]);
+      setTypePayment([]);
     }
-    console.log('Respuesta de la API:', response.data);
-    setProducts(response.data.data); 
-    
   }
 
   useEffect(()=>{
@@ -101,30 +115,36 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
   const processSale = async () => {
     if (cart.length === 0) return;
 
-    const sale: Sale = {
-      id: Date.now().toString(),
-      items: cart,
-      total: cartTotal,
-      date: new Date().toISOString(),
-      paymentMethod
-    };
+    try {
+      const sale: Sale = {
+        id: Date.now().toString(),
+        items: cart,
+        total: cartTotal,
+        date: new Date().toISOString(),
+        paymentMethod
+      };
 
-    const saleData = {
-      data: {  // <- Agregar esta línea
-        fechaVenta: new Date().toISOString(),
-        totalVenta: cartTotal,  
-        productosVendidos: cart,
-        tipoPago: paymentMethod // Enviar el ID del tipo de pago seleccionado
-      }  // <- Cerrar el objeto data
-    };
+      const saleData = {
+        data: {
+          fechaVenta: new Date().toISOString(),
+          totalVenta: cartTotal,  
+          productosVendidos: cart,
+          tipoPago: paymentMethod
+        }
+      };
 
-    const response = await axios.post(`${import.meta.env.VITE_URL_API}/api/sales`, saleData);
+      const response = await axios.post(`${import.meta.env.VITE_URL_API}/api/sales`, saleData);
 
-    console.log('Venta procesada:', response.data);
-    console.log('Venta procesada:', saleData);
-    onSale(sale);
-    setCart([]);
-    setSearchTerm('');
+      console.log('Venta procesada:', response.data);
+      console.log('Venta procesada:', saleData);
+      
+      onSale(sale);
+      setCart([]);
+      setSearchTerm('');
+    } catch (error) {
+      console.error('Error al procesar la venta:', error);
+      alert('Error al procesar la venta. Por favor, intente nuevamente.');
+    }
   };
 
   return (
@@ -157,7 +177,7 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
                 <h3 className="font-semibold text-gray-900 mb-2 truncate">{product.descripcion} {product.unidadMedida}</h3>
                 <p className="text-sm text-gray-600 mb-1">Stock: {product.stock}</p>
                 <p className="text-lg font-bold text-blue-600">${product.precioUnitario.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-1">{product.category.descripcion}</p>
+                <p className="text-xs text-gray-500 mt-1">{product.category?.descripcion || 'Sin categoría'}</p>
               </div>
             ))}
           </div>

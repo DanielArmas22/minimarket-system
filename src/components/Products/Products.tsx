@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, History } from 'lucide-react';
+import axios from 'axios';
 
 interface ProductsProps {
   products: Product[];
@@ -14,13 +15,17 @@ interface ProductsProps {
 }
 
 export const Products: React.FC<ProductsProps> = ({
-  products,
+  products: propsProducts,
   onSaveProduct,
   onDeleteProduct,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     descripcion: '',
     barCode: '',
@@ -30,31 +35,127 @@ export const Products: React.FC<ProductsProps> = ({
     unidadMedida: '',
   });
 
+  useEffect(() => {
+    obtenerProductos();
+  }, []);
+
+  const obtenerProductos = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products?populate=category`);
+      console.log('Productos obtenidos:', response.data);
+      
+      if (response.data && response.data.data) {
+        setProducts(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error al obtener productos:', error);
+      setProducts([]);
+    }
+  };
+
+  const obtenerHistorialPrecios = async (productId: number) => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_URL_API}/api/price-history-products?filters[product][id][$eq]=${productId}&populate=product&sort=fechaActualizacion:desc`
+      );
+      console.log('Historial obtenido:', response.data);
+      
+      if (response.data && response.data.data) {
+        setPriceHistory(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error al obtener historial:', error);
+      setPriceHistory([]);
+    }
+  };
+
+  const handleViewHistory = async (product: Product) => {
+    setSelectedProduct(product);
+    await obtenerHistorialPrecios(product.id);
+    setShowHistory(true);
+  };
+
   const filteredProducts = products.filter(product =>
     product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.barCode.includes(searchTerm)
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const productData: Product = {
-      id: editingProduct?.id || Date.now(),
-      documentId: editingProduct?.documentId || '',
-      descripcion: formData.descripcion,
-      barCode: formData.barCode,
-      precioUnitario: formData.precioUnitario,
-      stock: formData.stock,
-      stockMin: formData.stockMin,
-      unidadMedida: formData.unidadMedida,
-      createdAt: editingProduct?.createdAt || new Date(),
-      updatedAt: new Date(),
-      publishedAt: editingProduct?.publishedAt || new Date(),
-      category: editingProduct?.category || { id: 1, documentId: '', descripcion: 'General', estado: true, createdAt: new Date(), updatedAt: new Date(), publishedAt: new Date() },
-    };
+    try {
+      const productData = {
+        data: {
+          descripcion: formData.descripcion,
+          barCode: formData.barCode,
+          precioUnitario: formData.precioUnitario,
+          stock: formData.stock,
+          stockMin: formData.stockMin,
+          unidadMedida: formData.unidadMedida,
+        }
+      };
 
-    onSaveProduct(productData);
-    resetForm();
+      if (editingProduct) {
+        // Verificar si el precio cambió
+        const precioAnterior = editingProduct.precioUnitario;
+        const precioNuevo = formData.precioUnitario;
+        
+        // Actualizar producto existente usando documentId
+        const response = await axios.put(
+          `${import.meta.env.VITE_URL_API}/api/products/${editingProduct.documentId}`,
+          productData
+        );
+        console.log('Producto actualizado:', response.data);
+
+        // Si el precio cambió, registrar en el historial
+        if (precioAnterior !== precioNuevo) {
+          const historialData = {
+            data: {
+              precio: precioNuevo,
+              fechaActualizacion: new Date().toISOString(),
+              product: editingProduct.id
+            }
+          };
+
+          await axios.post(
+            `${import.meta.env.VITE_URL_API}/api/price-history-products`,
+            historialData
+          );
+          console.log('Historial de precio registrado');
+        }
+      } else {
+        // Crear nuevo producto
+        const response = await axios.post(
+          `${import.meta.env.VITE_URL_API}/api/products`,
+          productData
+        );
+        console.log('Producto creado:', response.data);
+
+        // Registrar precio inicial en el historial
+        if (response.data && response.data.data) {
+          const historialData = {
+            data: {
+              precio: formData.precioUnitario,
+              fechaActualizacion: new Date().toISOString(),
+              product: response.data.data.id
+            }
+          };
+
+          await axios.post(
+            `${import.meta.env.VITE_URL_API}/api/price-history-products`,
+            historialData
+          );
+          console.log('Precio inicial registrado en historial');
+        }
+      }
+
+      // Recargar la lista de productos
+      await obtenerProductos();
+      resetForm();
+    } catch (error) {
+      console.error('Error al guardar producto:', error);
+      alert('Error al guardar el producto. Por favor, intente nuevamente.');
+    }
   };
 
   const resetForm = () => {
@@ -208,36 +309,45 @@ export const Products: React.FC<ProductsProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Descripción</TableHead>
-              <TableHead>Código</TableHead>
-              <TableHead>Precio</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Stock Mín.</TableHead>
-              <TableHead>Unidad</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="text-center">Descripción</TableHead>
+              <TableHead className="text-center">Código</TableHead>
+              <TableHead className="text-center">Precio</TableHead>
+              <TableHead className="text-center">Stock</TableHead>
+              <TableHead className="text-center">Stock Mín.</TableHead>
+              <TableHead className="text-center">Unidad</TableHead>
+              <TableHead className="text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProducts.map((product) => (
               <TableRow key={product.id}>
-                <TableCell className="font-medium">{product.descripcion}</TableCell>
-                <TableCell>{product.barCode}</TableCell>
-                <TableCell>${product.precioUnitario.toFixed(2)}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium text-center">{product.descripcion}</TableCell>
+                <TableCell className="text-center">{product.barCode}</TableCell>
+                <TableCell className="text-center">${product.precioUnitario.toFixed(2)}</TableCell>
+                <TableCell className="text-center">
                   <span className={`${parseInt(product.stock) <= product.stockMin ? 'text-red-600 font-semibold' : ''}`}>
                     {product.stock}
                   </span>
                 </TableCell>
-                <TableCell>{product.stockMin}</TableCell>
-                <TableCell>{product.unidadMedida}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
+                <TableCell className="text-center">{product.stockMin}</TableCell>
+                <TableCell className="text-center">{product.unidadMedida}</TableCell>
+                <TableCell className="text-center">
+                  <div className="flex gap-2 justify-center">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(product)}
+                      title="Editar"
                     >
                       <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewHistory(product)}
+                      title="Ver historial de precios"
+                    >
+                      <History className="h-4 w-4" />
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -273,6 +383,63 @@ export const Products: React.FC<ProductsProps> = ({
           No se encontraron productos
         </div>
       )}
+
+      {/* Modal de Historial de Precios */}
+      <AlertDialog open={showHistory} onOpenChange={setShowHistory}>
+        <AlertDialogContent className="max-w-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Historial de Precios - {selectedProduct?.descripcion}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Registro de cambios de precio del producto
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="max-h-96 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Precio</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {priceHistory.length > 0 ? (
+                  priceHistory.map((history) => (
+                    <TableRow key={history.id}>
+                      <TableCell>
+                        {new Date(history.fechaActualizacion).toLocaleString('es-PE', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${history.precio?.toFixed(2) || '0.00'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-gray-500">
+                      No hay historial de precios registrado
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowHistory(false)}>
+              Cerrar
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
