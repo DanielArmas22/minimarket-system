@@ -5,6 +5,7 @@ import { Header } from "./components/Layout/Header";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { POS } from "./components/POS/POS";
 import { Products } from "./components/Products/Products";
+import { Promotions } from "./components/Promotions/Promotions";
 import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
 import { dataService } from "./services/dataService";
@@ -94,6 +95,8 @@ function App() {
             onDeleteProduct={handleDeleteProduct}
           />
         );
+      case "promotions":
+        return <Promotions />;
       case "customers":
         return (
           <Customers

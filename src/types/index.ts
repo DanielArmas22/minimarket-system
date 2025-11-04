@@ -87,5 +87,29 @@ export interface typePayment {
   updatedAt: Date;
   publishedAt: Date;
   estado: boolean;
+}
 
+export interface Promotion {
+  id: number;
+  documentId: string;
+  descripcion: string;
+  tipoPromocion: string;
+  descuento: number;
+  fechaInicio: string;
+  fechaFin: string;
+  cantidadProducto: number;
+  estado: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
+}
+
+export interface ProductPromotion {
+  id: number;
+  documentId: string;
+  promotion: Promotion;
+  product: Product;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
 }
