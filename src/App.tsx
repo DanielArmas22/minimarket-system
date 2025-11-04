@@ -9,6 +9,7 @@ import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
 import { CashRegister } from "./components/CashRegister/CashRegister";
 import { InventoryAdjustment } from "./components/InventoryAdjustment/InventoryAdjustment";
+import { OrderBuy } from "./components/OrderBuy/OrderBuy";
 import { dataService } from "./services/dataService";
 import { productService } from "./services/productService";
 import { Product, Customer, Sale, DashboardStats } from "./types";
@@ -111,6 +112,8 @@ function App() {
         );
       case "inventory-adjustment":
         return <InventoryAdjustment products={products} />;
+      case "order-buy":
+        return <OrderBuy products={products} />;
       case "customers":
         return (
           <Customers

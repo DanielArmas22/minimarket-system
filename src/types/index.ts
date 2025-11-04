@@ -152,3 +152,71 @@ export interface InventoryAdjustmentSummary {
   newStock: number;
   difference: number;
 }
+
+export type OrderBuyStatus = 'pendiente' | 'recibida' | 'cancelada';
+
+export interface Provider {
+  id: number;
+  documentId?: string;
+  razonSocial: string;
+  ruc: string;
+  direccion?: string;
+  telefono?: string;
+  email?: string;
+  contacto?: string;
+  estado?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface DetailOrderBuy {
+  id: number;
+  documentId?: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+  product?: Product;
+  order_buy?: OrderBuy;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface OrderBuy {
+  id: number;
+  documentId?: string;
+  fechaOrden: string;
+  estado: OrderBuyStatus;
+  subtotal: number;
+  igv: number;
+  total: number;
+  observaciones?: string;
+  provider?: Provider;
+  detail_order_buys?: DetailOrderBuy[];
+  users_permissions_user?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface OrderBuySummary {
+  orderId: number;
+  provider: string;
+  totalProductos: number;
+  subtotal: number;
+  igv: number;
+  total: number;
+}
+
+export interface UpdatedProduct {
+  productId: number;
+  productName: string;
+  previousStock: number;
+  addedQuantity: number;
+  newStock: number;
+}
