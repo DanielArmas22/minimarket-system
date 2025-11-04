@@ -118,3 +118,37 @@ export interface CashRegisterSummary {
   actualAmount: number;
   difference: number;
 }
+
+export type AdjustmentType = 'increase' | 'decrease';
+export type AdjustmentReason = 'merma' | 'conteo' | 'daño' | 'devolucion' | 'correccion' | 'otro';
+
+export interface InventoryAdjustment {
+  id: number;
+  documentId?: string;
+  adjustmentDate: string;
+  adjustmentType: AdjustmentType;
+  quantity: number;
+  reason: AdjustmentReason;
+  reasonDescription?: string;
+  previousStock: number;
+  newStock: number;
+  product?: Product;
+  users_permissions_user?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface InventoryAdjustmentSummary {
+  productId: number;
+  productDescription: string;
+  adjustmentType: AdjustmentType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  difference: number;
+}

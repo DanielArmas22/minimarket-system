@@ -8,7 +8,9 @@ import { Products } from "./components/Products/Products";
 import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
 import { CashRegister } from "./components/CashRegister/CashRegister";
+import { InventoryAdjustment } from "./components/InventoryAdjustment/InventoryAdjustment";
 import { dataService } from "./services/dataService";
+import { productService } from "./services/productService";
 import { Product, Customer, Sale, DashboardStats } from "./types";
 import { Login } from "./Auth/Login";
 import onLogout from "./Auth/onLogout";
@@ -49,8 +51,18 @@ function App() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    setProducts(dataService.getProducts());
+  const loadData = async () => {
+    // Cargar productos desde el backend
+    try {
+      const productsResponse = await productService.getAllProducts();
+      setProducts(productsResponse.data || []);
+    } catch (error) {
+      console.error('Error al cargar productos del backend:', error);
+      // Fallback a localStorage si falla el backend
+      setProducts(dataService.getProducts());
+    }
+    
+    // Estos siguen usando localStorage por ahora
     setCustomers(dataService.getCustomers());
     setSales(dataService.getSales());
     setStats(dataService.getDashboardStats());
@@ -97,6 +109,8 @@ function App() {
             onDeleteProduct={handleDeleteProduct}
           />
         );
+      case "inventory-adjustment":
+        return <InventoryAdjustment products={products} />;
       case "customers":
         return (
           <Customers

@@ -31,8 +31,8 @@ export const Products: React.FC<ProductsProps> = ({
   });
 
   const filteredProducts = products.filter(product =>
-    product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.barCode.includes(searchTerm)
+    product.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.barCode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent) => {
