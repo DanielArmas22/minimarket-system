@@ -113,3 +113,42 @@ export interface ProductPromotion {
   updatedAt: Date;
   publishedAt: Date;
 }
+
+export interface Provider {
+  id: number;
+  documentId: string;
+  razonSocial: string;
+  ruc: string;
+  telefono: string;
+  email: string;
+  estado: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
+}
+
+export interface OrderBuy {
+  id: number;
+  documentId: string;
+  fechaOrden: string;
+  fechaEntrega?: string;
+  fechaEntregaReal?: string;
+  estado: boolean;
+  igv: number;
+  provider: Provider;
+  detail_order_buys?: DetailOrderBuy[];
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
+}
+
+export interface DetailOrderBuy {
+  id: number;
+  documentId: string;
+  cantidad: number;
+  product: Product;
+  order_buy: OrderBuy;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date;
+}

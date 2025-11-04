@@ -6,6 +6,7 @@ import { Dashboard } from "./components/Dashboard/Dashboard";
 import { POS } from "./components/POS/POS";
 import { Products } from "./components/Products/Products";
 import { Promotions } from "./components/Promotions/Promotions";
+import { OrderBuyComponent } from "./components/OrderBuy/OrderBuy";
 import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
 import { dataService } from "./services/dataService";
@@ -97,6 +98,8 @@ function App() {
         );
       case "promotions":
         return <Promotions />;
+      case "orderBuy":
+        return <OrderBuyComponent />;
       case "customers":
         return (
           <Customers
