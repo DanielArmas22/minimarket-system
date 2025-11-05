@@ -45,12 +45,12 @@ services:
     container_name: minimarket_strapi
     environment:
       DATABASE_CLIENT: postgres
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_USERNAME: ${DATABASE_USERNAME}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_SSL: false
+      DATABASE_SSL: ${DATABASE_SSL}
       HOST: 0.0.0.0
       PORT: 1337
       APP_KEYS: ${APP_KEYS}
@@ -69,8 +69,6 @@ services:
       - ../backend-minimarket/package-lock.json:/opt/app/package-lock.json
       - ../backend-minimarket/public/uploads:/opt/app/public/uploads
       - strapi_node_modules:/opt/app/node_modules
-    depends_on:
-      - postgres
     restart: unless-stopped
     networks:
       - minimarket-network

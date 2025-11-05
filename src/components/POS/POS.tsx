@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Minus, Plus, Trash2, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { Search, Minus, Plus, Trash2, CreditCard, Banknote, Smartphone, Download, CheckCircle } from 'lucide-react';
 import { Product, SaleItem, Sale, typePayment } from '../../types';
 import axios from 'axios';
+import { ticketService } from '../../services/ticketService';
 
 interface POSProps {
   onSale: (sale: Sale) => void;
@@ -13,6 +14,7 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
   const [paymentMethod, setPaymentMethod] = useState<number | null>(null); // Cambiar a ID numérico
   const [products, setProducts] = useState<Product[]>([]);
   const [typePayment, setTypePayment] = useState<typePayment[]>([]);
+  const [lastSale, setLastSale] = useState<Sale | null>(null); // Guardar última venta para generar ticket
 
 
   const obtenerProductos = async ()=>{
@@ -138,12 +140,26 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
       console.log('Venta procesada:', response.data);
       console.log('Venta procesada:', saleData);
       
+      // Guardar la venta para generar ticket
+      setLastSale(sale);
+      
       onSale(sale);
       setCart([]);
       setSearchTerm('');
     } catch (error) {
       console.error('Error al procesar la venta:', error);
       alert('Error al procesar la venta. Por favor, intente nuevamente.');
+    }
+  };
+
+  const handleDownloadTicket = () => {
+    if (!lastSale) return;
+    
+    try {
+      ticketService.generateTicket(lastSale, typePayment);
+    } catch (error) {
+      console.error('Error al generar ticket:', error);
+      alert('Error al generar el ticket. Por favor, intente nuevamente.');
     }
   };
 
@@ -271,6 +287,23 @@ export const POS: React.FC<POSProps> = ({onSale }) => {
               >
                 Procesar Venta
               </button>
+
+              {/* Botón para descargar ticket después de venta exitosa */}
+              {lastSale && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">Venta procesada exitosamente</p>
+                  </div>
+                  <button
+                    onClick={handleDownloadTicket}
+                    className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+                  >
+                    <Download className="h-4 w-4" />
+                    Descargar Ticket PDF
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

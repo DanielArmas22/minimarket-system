@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Calendar, CreditCard, Banknote, Smartphone, BarChart } from 'lucide-react';
+import { Search, Filter, Calendar, CreditCard, Banknote, Smartphone, BarChart, Download } from 'lucide-react';
 import { Sale } from '../../types';
+import { ticketService } from '../../services/ticketService';
 
 interface SalesProps {
   sales: Sale[];
@@ -36,12 +37,12 @@ export const Sales: React.FC<SalesProps> = ({ sales }) => {
     }
   };
 
-  const getPaymentLabel = (method: string) => {
-    switch (method) {
-      case 'cash': return 'Efectivo';
-      case 'card': return 'Tarjeta';
-      case 'transfer': return 'Transferencia';
-      default: return method;
+  const handleDownloadTicket = (sale: Sale) => {
+    try {
+      ticketService.generateTicket(sale);
+    } catch (error) {
+      console.error('Error al generar ticket:', error);
+      alert('Error al generar el ticket. Por favor, intente nuevamente.');
     }
   };
 
@@ -102,7 +103,7 @@ export const Sales: React.FC<SalesProps> = ({ sales }) => {
                     <PaymentIcon className="h-5 w-5 text-green-600" />
                   </div>
                   
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-semibold text-gray-900">Venta #{sale.id}</h4>
                     <p className="text-sm text-gray-600">
                       {new Date(sale.date).toLocaleDateString('es-ES', {
@@ -119,9 +120,20 @@ export const Sales: React.FC<SalesProps> = ({ sales }) => {
                   </div>
                 </div>
                 
-                <div className="text-right">
-                  <p className="text-xl font-bold text-green-600">${sale.total.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">{getPaymentLabel(sale.paymentMethod)}</p>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-green-600">${sale.total.toFixed(2)}</p>
+                    <p className="text-sm text-gray-600">{getPaymentLabel(sale.paymentMethod)}</p>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleDownloadTicket(sale)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    title="Descargar ticket PDF"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Ticket</span>
+                  </button>
                 </div>
               </div>
               
