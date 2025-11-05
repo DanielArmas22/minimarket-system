@@ -1,5 +1,6 @@
 import { InventoryAdjustment, InventoryAdjustmentSummary, AdjustmentType, AdjustmentReason } from '../types';
-import { API_URL, API_KEY } from '../lib/env';
+
+const API_URL = import.meta.env.VITE_URL_API || 'http://localhost:1337';
 
 interface AdjustInventoryRequest {
   productId: number;
@@ -21,7 +22,6 @@ class InventoryAdjustmentService {
   private getBasicHeaders(): HeadersInit {
     return {
       'Content-Type': 'application/json',
-      ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
     };
   }
 

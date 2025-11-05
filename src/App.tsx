@@ -11,6 +11,7 @@ import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
 import { CashRegister } from "./components/CashRegister/CashRegister";
 import { InventoryAdjustment } from "./components/InventoryAdjustment/InventoryAdjustment";
+import { Reports } from "./components/Reports/Reports";
 import { dataService } from "./services/dataService";
 import { productService } from "./services/productService";
 import { Stock } from "./components/Stock/Stock";
@@ -129,6 +130,8 @@ function App() {
         );
       case "sales":
         return <Sales sales={sales} />;
+      case "reports":
+        return <Reports sales={sales} />;
       case "users":
         return <UserList />;
       case "roles":
