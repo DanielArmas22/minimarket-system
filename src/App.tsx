@@ -6,7 +6,6 @@ import { Dashboard } from "./components/Dashboard/Dashboard";
 import { POS } from "./components/POS/POS";
 import { Products } from "./components/Products/Products";
 import { Promotions } from "./components/Promotions/Promotions";
-import { OrderBuyComponent } from "./components/OrderBuy/OrderBuy";
 import { Customers } from "./components/Customers/Customers";
 import { Sales } from "./components/Sales/Sales";
 import { CashRegister } from "./components/CashRegister/CashRegister";
@@ -115,7 +114,7 @@ function App() {
       case "promotions":
         return <Promotions />;
       case "orderBuy":
-        return <OrderBuyComponent />;
+        return <OrderBuy products={products} />;
       case "inventory-adjustment":
         return <InventoryAdjustment products={products} />;
       // case "order-buy":
