@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart, Settings, Shield, UserCog, Tag, Truck } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart, Settings, Shield, UserCog, Tag, Truck, Wallet, UserCircle2 } from 'lucide-react';
 
 interface NavigationProps {
   activeTab: string;
@@ -10,6 +10,8 @@ interface NavigationProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'pos', label: 'POS', icon: ShoppingCart },
+  { id: 'cash-register', label: 'Caja', icon: Wallet },
+  { id: 'stock', label: 'Consultar Stock', icon: Package },
   { id: 'products', label: 'Productos', icon: Package },
   { id: 'promotions', label: 'Promociones', icon: Tag },
   { id: 'orderBuy', label: 'Mercancía', icon: Truck },
@@ -17,12 +19,13 @@ const navItems = [
   { id: 'sales', label: 'Ventas', icon: BarChart },
   { id: 'users', label: 'Usuarios', icon: UserCog },
   { id: 'roles', label: 'Roles', icon: Shield },
+  { id: 'collaborators', label: 'Colaboradores', icon: UserCircle2 },
 ];
 
-export const Navigation: React.FC<NavigationProps> = ({ 
-  activeTab, 
-  onTabChange, 
-  isMobile = false 
+export const Navigation: React.FC<NavigationProps> = ({
+  activeTab,
+  onTabChange,
+  isMobile = false
 }) => {
   if (isMobile) {
     return (
@@ -34,11 +37,10 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`flex flex-col items-center py-2 px-1 min-w-0 transition-colors ${
-                  activeTab === item.id
-                    ? 'text-blue-600'
-                    : 'text-gray-600 hover:text-blue-500'
-                }`}
+                className={`flex flex-col items-center py-2 px-1 min-w-0 transition-colors ${activeTab === item.id
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-blue-500'
+                  }`}
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-xs mt-1 truncate">{item.label}</span>
@@ -59,7 +61,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           </div>
           <h1 className="text-xl font-bold text-gray-900">MiniMarket Pro</h1>
         </div>
-        
+
         <ul className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -67,11 +69,10 @@ export const Navigation: React.FC<NavigationProps> = ({
               <li key={item.id}>
                 <button
                   onClick={() => onTabChange(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    activeTab === item.id
-                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${activeTab === item.id
+                    ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                    }`}
                 >
                   <Icon className="h-5 w-5" />
                   <span className="font-medium">{item.label}</span>

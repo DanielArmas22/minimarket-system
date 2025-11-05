@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Consulta de Stock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        /* Header con alertas */
+        .header-alerts {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .alert-badge {
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .alert-badge:hover {
+            background-color: #c0392b;
+            transform: scale(1.05);
+        }
+
+        .alert-badge.warning {
+            background-color: #f39c12;
+        }
+
+        .alert-badge.success {
+            background-color: #27ae60;
+        }
+
+        /* Barra de búsqueda y filtros */
+        .search-filter-bar {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn-search {
+            padding: 10px 25px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-search:hover {
+            background-color: #2980b9;
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr) auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .btn-clear-filters {
+            padding: 8px 15px;
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            height: 35px;
+        }
+
+        .btn-clear-filters:hover {
+            background-color: #7f8c8d;
+        }
+
+        /* Layout principal */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+
+        /* Panel izquierdo: Lista de productos */
+        .left-panel {
+            border-right: 2px solid #ecf0f1;
+            padding-right: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #34495e;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-export {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-pdf {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-pdf:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-excel {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-excel:hover {
+            background-color: #229954;
+        }
+
+        .products-list {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .product-item {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .product-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .stock-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .stock-normal {
+            background-color: #27ae60;
+        }
+
+        .stock-bajo {
+            background-color: #f39c12;
+        }
+
+        .stock-agotado {
+            background-color: #e74c3c;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .product-code {
+            font-size: 11px;
+            color: #95a5a6;
+            background-color: #ecf0f1;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+
+        .product-details {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .product-category {
+            display: inline-block;
+            padding: 3px 8px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        .product-stock-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .stock-quantity {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stock-label {
+            font-size: 11px;
+            color: #95a5a6;
+            text-transform: uppercase;
+        }
+
+        .product-price {
+            font-size: 14px;
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .btn-ver-detalles {
+            padding: 6px 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .btn-ver-detalles:hover {
+            background-color: #2980b9;
+        }
+
+        /* Panel derecho: Detalles del producto */
+        .right-panel {
+            padding-left: 25px;
+        }
+
+        .detail-card {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .detail-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 180px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+
+        .detail-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 13px;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .stock-highlight {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin: 15px 0;
+            border: 2px solid #27ae60;
+        }
+
+        .stock-highlight-quantity {
+            font-size: 36px;
+            font-weight: 700;
+            color: #27ae60;
+        }
+
+        .stock-highlight-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* Movimientos recientes */
+        .movements-list {
+            background-color: white;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .movement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 12px;
+        }
+
+        .movement-item:last-child {
+            border-bottom: none;
+        }
+
+        .movement-type {
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .movement-entrada {
+            color: #27ae60;
+        }
+
+        .movement-salida {
+            color: #e74c3c;
+        }
+
+        .movement-ajuste {
+            color: #3498db;
+        }
+
+        .movement-quantity {
+            font-weight: 700;
+        }
+
+        .movement-date {
+            font-size: 11px;
+            color: #95a5a6;
+        }
+
+        /* Panel de alertas lateral */
+        .alerts-panel {
+            background-color: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .alerts-panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .alert-item {
+            padding: 8px;
+            background-color: #fff3cd;
+            border-left: 3px solid #f39c12;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .alert-item.critical {
+            background-color: #f8d7da;
+            border-left-color: #e74c3c;
+        }
+
+        .updating-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #3498db;
+        }
+
+        .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #3498db;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Estadísticas rápidas */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Consulta de Stock</h1>
+        
+        <!-- Alertas superiores -->
+        <div class="header-alerts">
+            <div class="alert-info">
+                <span>⚠️ Alertas de Inventario:</span>
+                <span class="alert-badge">5 productos sin stock</span>
+                <span class="alert-badge warning">12 productos con stock bajo</span>
+            </div>
+            <div class="updating-indicator">
+                <div class="spinner"></div>
+                <span>Actualizando stock...</span>
+            </div>
+        </div>
+
+        <!-- Estadísticas rápidas -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value">243</div>
+                <div class="stat-label">Total Productos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">S/ 45,320</div>
+                <div class="stat-label">Valor Total Inventario</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">17</div>
+                <div class="stat-label">Requieren Atención</div>
+            </div>
+        </div>
+
+        <!-- Barra de búsqueda y filtros -->
+        <div class="search-filter-bar">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="🔍 Buscar por nombre, código de barras o categoría...">
+                <button class="btn-search">Buscar</button>
+            </div>
+            
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Estado de Stock</label>
+                    <select>
+                        <option>Todos</option>
+                        <option>Stock normal</option>
+                        <option>Stock bajo</option>
+                        <option>Sin stock</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Categoría</label>
+                    <select>
+                        <option>Todas las categorías</option>
+                        <option>Abarrotes</option>
+                        <option>Bebidas</option>
+                        <option>Lácteos</option>
+                        <option>Limpieza</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Precio Mínimo</label>
+                    <input type="number" placeholder="S/ 0.00">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Precio Máximo</label>
+                    <input type="number" placeholder="S/ 999.99">
+                </div>
+                
+                <button class="btn-clear-filters">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Panel Izquierdo: Lista de Productos -->
+            <div class="left-panel">
+                <div class="section-title">
+                    <span>Vista de inventario (15 productos)</span>
+                    <div class="export-buttons">
+                        <button class="btn-export btn-pdf">📄 PDF</button>
+                        <button class="btn-export btn-excel">📊 Excel</button>
+                    </div>
+                </div>
+                
+                <div class="products-list">
+                    <!-- Producto 1: Stock Normal -->
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="stock-indicator stock-normal"></span>
+                                <span class="product-name">Coca Cola 1.5L</span>
+                                <span class="product-code">7750885000017</span>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-category">Bebidas</span>
+                                <span>Stock mínimo: 20 unid.</span>
+                            </div>
+                        </div>
+                        <div class="product-stock-info">
+                            <div class="stock-quantity">45</div>
+                            <div class="stock-label">unidades</div>
+                            <div class="product-price">S/ 5.50</div>
+                            <button class="btn-ver-detalles">Ver Detalles</button>
+                        </div>
+                    </div>
+
+                    <!-- Producto 2: Stock Bajo -->
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="stock-indicator stock-bajo"></span>
+                                <span class="product-name">Leche Gloria Entera 1L</span>
+                                <span class="product-code">7750182000123</span>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-category">Lácteos</span>
+                                <span>Stock mínimo: 15 unid. ⚠️</span>
+                            </div>
+                        </div>
+                        <div class="product-stock-info">
+                            <div class="stock-quantity" style="color: #f39c12;">8</div>
+                            <div class="stock-label">unidades</div>
+                            <div class="product-price">S/ 4.20</div>
+                            <button class="btn-ver-detalles">Ver Detalles</button>
+                        </div>
+                    </div>
+
+                    <!-- Producto 3: Sin Stock -->
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="stock-indicator stock-agotado"></span>
+                                <span class="product-name">Arroz Superior 1kg</span>
+                                <span class="product-code">7750281234567</span>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-category">Abarrotes</span>
+                                <span>Stock mínimo: 30 unid. 🚫</span>
+                            </div>
+                        </div>
+                        <div class="product-stock-info">
+                            <div class="stock-quantity" style="color: #e74c3c;">0</div>
+                            <div class="stock-label">AGOTADO</div>
+                            <div class="product-price">S/ 3.80</div>
+                            <button class="btn-ver-detalles">Ver Detalles</button>
+                        </div>
+                    </div>
+
+                    <!-- Producto 4: Stock Normal -->
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="stock-indicator stock-normal"></span>
+                                <span class="product-name">Aceite Primor 1L</span>
+                                <span class="product-code">7750885123456</span>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-category">Abarrotes</span>
+                                <span>Stock mínimo: 10 unid.</span>
+                            </div>
+                        </div>
+                        <div class="product-stock-info">
+                            <div class="stock-quantity">28</div>
+                            <div class="stock-label">unidades</div>
+                            <div class="product-price">S/ 12.50</div>
+                            <button class="btn-ver-detalles">Ver Detalles</button>
+                        </div>
+                    </div>
+
+                    <!-- Producto 5: Stock Normal -->
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="stock-indicator stock-normal"></span>
+                                <span class="product-name">Detergente Ariel 1kg</span>
+                                <span class="product-code">7750182987654</span>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-category">Limpieza</span>
+                                <span>Stock mínimo: 12 unid.</span>
+                            </div>
+                        </div>
+                        <div class="product-stock-info">
+                            <div class="stock-quantity">35</div>
+                            <div class="stock-label">unidades</div>
+                            <div class="product-price">S/ 15.90</div>
+                            <button class="btn-ver-detalles">Ver Detalles</button>
+                        </div>
+                    </div>
+
+                    <!-- Producto 6: Stock Bajo -->
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="stock-indicator stock-bajo"></span>
+                                <span class="product-name">Pan Bimbo Blanco 500g</span>
+                                <span class="product-code">7750182456789</span>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-category">Panadería</span>
+                                <span>Stock mínimo: 8 unid. ⚠️</span>
+                            </div>
+                        </div>
+                        <div class="product-stock-info">
+                            <div class="stock-quantity" style="color: #f39c12;">3</div>
+                            <div class="stock-label">unidades</div>
+                            <div class="product-price">S/ 6.50</div>
+                            <button class="btn-ver-detalles">Ver Detalles</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Detalles del Producto -->
+            <div class="right-panel">
+                <div class="detail-card">
+                    <div class="detail-title">📦 Detalles del Producto</div>
+                    
+                    <div class="product-image">
+                        🖼️ Imagen del Producto
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-section-title">📋 Información General</div>
+                        <div class="detail-row">
+                            <span class="detail-label">Nombre:</span>
+                            <span class="detail-value">Coca Cola 1.5L</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Código de Barras:</span>
+                            <span class="detail-value">7750885000017</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Código Interno:</span>
+                            <span class="detail-value">PROD-001</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Categoría:</span>
+                            <span class="detail-value">Bebidas</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Proveedor Principal:</span>
+                            <span class="detail-value">Arca Continental</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Ubicación Almacén:</span>
+                            <span class="detail-value">Pasillo 2 - Estante B3</span>
+                        </div>
+                    </div>
+
+                    <div class="stock-highlight">
+                        <div class="stock-highlight-quantity">45</div>
+                        <div class="stock-highlight-label">Stock Actual Disponible</div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
+                            Stock Mínimo: <strong>20 unidades</strong>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-section-title">💰 Información Comercial</div>
+                        <div class="detail-row">
+                            <span class="detail-label">Precio de Compra:</span>
+                            <span class="detail-value">S/ 3.50</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Precio de Venta:</span>
+                            <span class="detail-value">S/ 5.50</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Margen de Ganancia:</span>
+                            <span class="detail-value" style="color: #27ae60;">57.14%</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Última Actualización:</span>
+                            <span class="detail-value">04/11/2025 14:35</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-section-title">📊 Movimientos Recientes</div>
+                        <div class="movements-list">
+                            <div class="movement-item">
+                                <div>
+                                    <span class="movement-type movement-entrada">➕ Entrada</span>
+                                    <span class="movement-quantity">+30 unid.</span>
+                                </div>
+                                <div class="movement-date">
+                                    03/11/2025 10:20<br>
+                                    <span style="font-size: 10px;">Usuario: jperez</span>
+                                </div>
+                            </div>
+                            <div class="movement-item">
+                                <div>
+                                    <span class="movement-type movement-salida">➖ Salida</span>
+                                    <span class="movement-quantity">-12 unid.</span>
+                                </div>
+                                <div class="movement-date">
+                                    02/11/2025 16:45<br>
+                                    <span style="font-size: 10px;">Venta #V-2145</span>
+                                </div>
+                            </div>
+                            <div class="movement-item">
+                                <div>
+                                    <span class="movement-type movement-salida">➖ Salida</span>
+                                    <span class="movement-quantity">-8 unid.</span>
+                                </div>
+                                <div class="movement-date">
+                                    01/11/2025 11:30<br>
+                                    <span style="font-size: 10px;">Venta #V-2089</span>
+                                </div>
+                            </div>
+                            <div class="movement-item">
+                                <div>
+                                    <span class="movement-type movement-ajuste">🔄 Ajuste</span>
+                                    <span class="movement-quantity">+5 unid.</span>
+                                </div>
+                                <div class="movement-date">
+                                    30/10/2025 09:15<br>
+                                    <span style="font-size: 10px;">Corrección inventario</span>
+                                </div>
+                            </div>
+                            <div class="movement-item">
+                                <div>
+                                    <span class="movement-type movement-entrada">➕ Entrada</span>
+                                    <span class="movement-quantity">+50 unid.</span>
+                                </div>
+                                <div class="movement-date">
+                                    28/10/2025 14:00<br>
+                                    <span style="font-size: 10px;">Usuario: mgarcia</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Alertas -->
+                <div class="alerts-panel">
+                    <div class="alerts-panel-title">⚠️ Productos que Requieren Atención</div>
+                    <div class="alert-item critical">
+                        <strong>Sin Stock:</strong> Arroz Superior 1kg
+                    </div>
+                    <div class="alert-item critical">
+                        <strong>Sin Stock:</strong> Azúcar Blanca 1kg
+                    </div>
+                    <div class="alert-item">
+                        <strong>Stock Bajo:</strong> Leche Gloria (8 unid.)
+                    </div>
+                    <div class="alert-item">
+                        <strong>Stock Bajo:</strong> Pan Bimbo (3 unid.)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

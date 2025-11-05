@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Aprobación de Órdenes de Compra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        /* Estadísticas superiores */
+        .stats-header {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.pending {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .stat-card.approved {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .stat-card.rejected {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        /* Filtros */
+        .filters-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filters-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr) auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .btn-clear {
+            padding: 8px 15px;
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            height: 35px;
+            font-weight: 500;
+        }
+
+        .btn-clear:hover {
+            background-color: #7f8c8d;
+        }
+
+        /* Layout principal */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
+        }
+
+        /* Panel izquierdo */
+        .left-panel {
+            border-right: 2px solid #ecf0f1;
+            padding-right: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #34495e;
+            font-weight: 600;
+        }
+
+        .btn-export {
+            padding: 8px 15px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-export:hover {
+            background-color: #229954;
+        }
+
+        /* Lista de órdenes */
+        .orders-list {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .order-card {
+            padding: 18px;
+            border-bottom: 1px solid #ecf0f1;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .order-card:hover {
+            background-color: #f8f9fa;
+        }
+
+        .order-card.selected {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+        }
+
+        .order-card:last-child {
+            border-bottom: none;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .order-number {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .order-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-received {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .order-info {
+            font-size: 13px;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .order-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .order-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: #27ae60;
+            margin-top: 8px;
+        }
+
+        .order-alert {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            background-color: #fff3cd;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #856404;
+            margin-top: 8px;
+        }
+
+        /* Panel derecho */
+        .right-panel {
+            padding-left: 25px;
+        }
+
+        .detail-card {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: 20px;
+        }
+
+        .detail-title {
+            font-size: 20px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .detail-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .detail-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .info-item {
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        /* Tabla de productos */
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .products-table th {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .products-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .products-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .products-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .stock-badge {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .stock-critical {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .stock-low {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .stock-normal {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        /* Totales */
+        .totals-section {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .total-row.main {
+            border-top: 2px solid #3498db;
+            margin-top: 8px;
+            padding-top: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        /* Observaciones */
+        .observations-box {
+            background-color: #fff3cd;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #f39c12;
+            font-size: 13px;
+            color: #856404;
+            margin-top: 15px;
+        }
+
+        /* Alertas y validaciones */
+        .alerts-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-left: 3px solid #f39c12;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .alert-item.critical {
+            background-color: #f8d7da;
+            border-left-color: #e74c3c;
+        }
+
+        .alert-item.info {
+            background-color: #d1ecf1;
+            border-left-color: #3498db;
+        }
+
+        /* Botones de acción */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-approve {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background-color: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-reject {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-modify {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-modify:hover {
+            background-color: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+        }
+
+        /* Modal de confirmación */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .modal-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px;
+        }
+
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-confirm {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background-color: #229954;
+        }
+
+        .btn-cancel {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background-color: #7f8c8d;
+        }
+
+        /* Historial */
+        .history-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 6px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-left: 3px solid #3498db;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .history-icon {
+            font-size: 20px;
+        }
+
+        .history-content {
+            flex: 1;
+        }
+
+        .history-action {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .history-date {
+            color: #6c757d;
+            font-size: 11px;
+        }
+
+        .comparison-highlight {
+            background-color: #d1ecf1;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Aprobación de Órdenes de Compra</h1>
+        
+        <!-- Estadísticas superiores -->
+        <div class="stats-header">
+            <div class="stat-card pending">
+                <div class="stat-number">8</div>
+                <div class="stat-label">🟠 Pendientes Aprobación</div>
+            </div>
+            <div class="stat-card approved">
+                <div class="stat-number">45</div>
+                <div class="stat-label">✅ Aprobadas (Mes)</div>
+            </div>
+            <div class="stat-card rejected">
+                <div class="stat-number">3</div>
+                <div class="stat-label">🔴 Rechazadas (Mes)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">2.5h</div>
+                <div class="stat-label">⏱️ Tiempo Promedio</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">S/ 125K</div>
+                <div class="stat-label">💰 Total Aprobado (Mes)</div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters-section">
+            <div class="filters-title">🔍 Filtros de Búsqueda</div>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Estado</label>
+                    <select>
+                        <option>Pendiente de Aprobación</option>
+                        <option>Aprobada</option>
+                        <option>Rechazada</option>
+                        <option>Todas</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Proveedor</label>
+                    <select>
+                        <option>Todos los proveedores</option>
+                        <option>Distribuidora Lima SAC</option>
+                        <option>Alimentos del Norte</option>
+                        <option>Proveedora Central</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Desde</label>
+                    <input type="date">
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Hasta</label>
+                    <input type="date">
+                </div>
+                <div class="filter-group">
+                    <label>Monto Mínimo</label>
+                    <input type="number" placeholder="S/ 0.00">
+                </div>
+                <button class="btn-clear">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <!-- Panel Izquierdo: Lista de Órdenes -->
+            <div class="left-panel">
+                <div class="section-header">
+                    <span class="section-title">Órdenes de Compra (8 pendientes)</span>
+                    <button class="btn-export">📊 Exportar Reporte</button>
+                </div>
+
+                <div class="orders-list">
+                    <!-- Orden 1: Pendiente - Seleccionada -->
+                    <div class="order-card selected">
+                        <div class="order-header">
+                            <span class="order-number">#OC-2025-0123</span>
+                            <span class="order-status status-pending">🟠 Pendiente</span>
+                        </div>
+                        <div class="order-info">
+                            <div class="order-info-row">
+                                <span><strong>Proveedor:</strong> Distribuidora Lima SAC</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Fecha:</strong> 04/11/2025 09:30</span>
+                                <span><strong>Productos:</strong> 15 items</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Solicitante:</strong> Carlos Mendoza</span>
+                            </div>
+                        </div>
+                        <div class="order-amount">S/ 8,450.00</div>
+                        <div class="order-alert">
+                            🔔 3 productos con stock crítico
+                        </div>
+                    </div>
+
+                    <!-- Orden 2: Pendiente -->
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-number">#OC-2025-0122</span>
+                            <span class="order-status status-pending">🟠 Pendiente</span>
+                        </div>
+                        <div class="order-info">
+                            <div class="order-info-row">
+                                <span><strong>Proveedor:</strong> Alimentos del Norte</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Fecha:</strong> 03/11/2025 16:45</span>
+                                <span><strong>Productos:</strong> 8 items</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Solicitante:</strong> María García</span>
+                            </div>
+                        </div>
+                        <div class="order-amount">S/ 4,280.50</div>
+                    </div>
+
+                    <!-- Orden 3: Pendiente -->
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-number">#OC-2025-0121</span>
+                            <span class="order-status status-pending">🟠 Pendiente</span>
+                        </div>
+                        <div class="order-info">
+                            <div class="order-info-row">
+                                <span><strong>Proveedor:</strong> Proveedora Central</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Fecha:</strong> 03/11/2025 11:20</span>
+                                <span><strong>Productos:</strong> 22 items</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Solicitante:</strong> Juan Pérez</span>
+                            </div>
+                        </div>
+                        <div class="order-amount">S/ 12,850.00</div>
+                        <div class="order-alert">
+                            ⚠️ Monto superior al promedio
+                        </div>
+                    </div>
+
+                    <!-- Orden 4: Aprobada -->
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-number">#OC-2025-0120</span>
+                            <span class="order-status status-approved">✅ Aprobada</span>
+                        </div>
+                        <div class="order-info">
+                            <div class="order-info-row">
+                                <span><strong>Proveedor:</strong> Distribuidora Lima SAC</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Fecha:</strong> 02/11/2025 14:15</span>
+                                <span><strong>Productos:</strong> 10 items</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Aprobado por:</strong> Admin Principal</span>
+                            </div>
+                        </div>
+                        <div class="order-amount">S/ 5,640.00</div>
+                    </div>
+
+                    <!-- Orden 5: Rechazada -->
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-number">#OC-2025-0119</span>
+                            <span class="order-status status-rejected">🔴 Rechazada</span>
+                        </div>
+                        <div class="order-info">
+                            <div class="order-info-row">
+                                <span><strong>Proveedor:</strong> Alimentos Express</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Fecha:</strong> 01/11/2025 10:30</span>
+                                <span><strong>Productos:</strong> 12 items</span>
+                            </div>
+                            <div class="order-info-row">
+                                <span><strong>Rechazado por:</strong> Gerente General</span>
+                                <span style="font-size: 11px; color: #e74c3c;">Precio elevado</span>
+                            </div>
+                        </div>
+                        <div class="order-amount" style="color: #e74c3c;">S/ 9,320.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Detalle de la Orden -->
+            <div class="right-panel">
+                <div class="detail-card">
+                    <div class="detail-header">
+                        <div class="detail-title">📋 Detalle de Orden #OC-2025-0123</div>
+                        <span class="order-status status-pending">🟠 Pendiente Aprobación</span>
+                    </div>
+
+                    <!-- Alertas y Validaciones -->
+                    <div class="alerts-section">
+                        <div class="detail-section-title">⚠️ Alertas y Validaciones</div>
+                        <div class="alert-item critical">
+                            🔔 <strong>3 productos con stock crítico</strong> - Justifica urgencia de compra
+                        </div>
+                        <div class="alert-item info">
+                            💰 Comparación precio: Similar al promedio histórico con este proveedor
+                        </div>
+                        <div class="comparison-highlight">
+                            📊 <strong>Impacto en inventario:</strong> +S/ 8,450 | Representa 6.7% del inventario total
+                        </div>
+                    </div>
+
+                    <!-- Información General -->
+                    <div class="detail-section">
+                        <div class="detail-section-title">📄 Información General</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Número de Orden</div>
+                                <div class="info-value">#OC-2025-0123</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Fecha de Creación</div>
+                                <div class="info-value">04/11/2025 09:30</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Usuario Solicitante</div>
+                                <div class="info-value">Carlos Mendoza</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Estado Actual</div>
+                                <div class="info-value" style="color: #f39c12;">Pendiente de Aprobación</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información del Proveedor -->
+                    <div class="detail-section">
+                        <div class="detail-section-title">🏢 Información del Proveedor</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Nombre Comercial</div>
+                                <div class="info-value">Distribuidora Lima SAC</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">RUC</div>
+                                <div class="info-value">20123456789</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Contacto</div>
+                                <div class="info-value">Luis Ramírez</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Teléfono</div>
+                                <div class="info-value">987-654-321</div>
+                            </div>
+                            <div class="info-item" style="grid-column: span 2;">
+                                <div class="info-label">Condiciones de Pago</div>
+                                <div class="info-value">Crédito 30 días</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalle de Productos -->
+                    <div class="detail-section">
+                        <div class="detail-section-title">📦 Productos Solicitados (15 items)</div>
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Cant.</th>
+                                    <th>P. Unit.</th>
+                                    <th>Subtotal</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Arroz Superior 1kg</strong><br><span style="font-size: 10px; color: #6c757d;">COD-001</span></td>
+                                    <td>Abarrotes</td>
+                                    <td>100</td>
+                                    <td>S/ 3.50</td>
+                                    <td><strong>S/ 350.00</strong></td>
+                                    <td><span class="stock-badge stock-critical">0 / 30</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Aceite Primor 1L</strong><br><span style="font-size: 10px; color: #6c757d;">COD-002</span></td>
+                                    <td>Abarrotes</td>
+                                    <td>50</td>
+                                    <td>S/ 11.50</td>
+                                    <td><strong>S/ 575.00</strong></td>
+                                    <td><span class="stock-badge stock-low">5 / 15</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Coca Cola 1.5L</strong><br><span style="font-size: 10px; color: #6c757d;">COD-003</span></td>
+                                    <td>Bebidas</td>
+                                    <td>200</td>
+                                    <td>S/ 4.00</td>
+                                    <td><strong>S/ 800.00</strong></td>
+                                    <td><span class="stock-badge stock-normal">45 / 20</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Leche Gloria 1L</strong><br><span style="font-size: 10px; color: #6c757d;">COD-004</span></td>
+                                    <td>Lácteos</td>
+                                    <td>120</td>
+                                    <td>S/ 3.80</td>
+                                    <td><strong>S/ 456.00</strong></td>
+                                    <td><span class="stock-badge stock-critical">2 / 15</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Detergente Ariel 1kg</strong><br><span style="font-size: 10px; color: #6c757d;">COD-005</span></td>
+                                    <td>Limpieza</td>
+                                    <td>80</td>
+                                    <td>S/ 14.50</td>
+                                    <td><strong>S/ 1,160.00</strong></td>
+                                    <td><span class="stock-badge stock-normal">35 / 12</span></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" style="text-align: right; font-weight: 600;">+ 10 productos más...</td>
+                                    <td colspan="2"><strong>Ver todos →</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totales -->
+                    <div class="totals-section">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span><strong>S/ 7,161.02</strong></span>
+                        </div>
+                        <div class="total-row">
+                            <span>IGV (18%):</span>
+                            <span><strong>S/ 1,288.98</strong></span>
+                        </div>
+                        <div class="total-row main">
+                            <span>TOTAL:</span>
+                            <span>S/ 8,450.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="observations-box">
+                        <strong>📝 Observaciones del Solicitante:</strong><br>
+                        "Reposición urgente por productos agotados y con alta rotación. Arroz y leche tienen stock crítico. Proveedor ofrece descuento del 5% por volumen. Requerido para el fin de semana."
+                    </div>
+
+                    <!-- Motivo de la compra -->
+                    <div class="detail-section">
+                        <div class="detail-section-title">💡 Motivo de la Compra</div>
+                        <div class="info-item">
+                            <div class="info-value">🔄 Reposición de stock - Productos con alta demanda</div>
+                        </div>
+                    </div>
+
+                    <!-- Historial (si existe) -->
+                    <div class="history-section">
+                        <div class="detail-section-title">📜 Historial de Cambios</div>
+                        <div class="history-item">
+                            <div class="history-icon">📝</div>
+                            <div class="history-content">
+                                <div class="history-action">Orden creada</div>
+                                <div class="history-date">04/11/2025 09:30 - Carlos Mendoza</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="action-buttons">
+                        <button class="btn-action btn-approve">✅ Aprobar Orden</button>
+                        <button class="btn-action btn-reject">🔴 Rechazar</button>
+                        <button class="btn-action btn-modify">📝 Solicitar Modificación</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Aprobación (Oculto) -->
+    <div class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-title">✅ Confirmar Aprobación de Orden</div>
+            <div class="modal-body">
+                <div class="modal-summary">
+                    <div class="modal-summary-row">
+                        <strong>Número de Orden:</strong>
+                        <span>#OC-2025-0123</span>
+                    </div>
+                    <div class="modal-summary-row">
+                        <strong>Proveedor:</strong>
+                        <span>Distribuidora Lima SAC</span>
+                    </div>
+                    <div class="modal-summary-row">
+                        <strong>Total:</strong>
+                        <span style="color: #27ae60; font-weight: 700;">S/ 8,450.00</span>
+                    </div>
+                    <div class="modal-summary-row">
+                        <strong>Productos:</strong>
+                        <span>15 items</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Observaciones de Aprobación (Opcional)</label>
+                    <textarea placeholder="Ingrese observaciones adicionales si es necesario..."></textarea>
+                </div>
+
+                <p style="font-size: 13px; color: #6c757d; text-align: center;">
+                    ¿Está seguro de aprobar esta orden de compra?
+                </p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-confirm">Confirmar Aprobación</button>
+                <button class="btn-modal btn-cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Rechazo (Oculto) -->
+    <div class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-title">🔴 Rechazar Orden de Compra</div>
+            <div class="modal-body">
+                <div class="modal-summary">
+                    <div class="modal-summary-row">
+                        <strong>Número de Orden:</strong>
+                        <span>#OC-2025-0123</span>
+                    </div>
+                    <div class="modal-summary-row">
+                        <strong>Proveedor:</strong>
+                        <span>Distribuidora Lima SAC</span>
+                    </div>
+                    <div class="modal-summary-row">
+                        <strong>Total:</strong>
+                        <span>S/ 8,450.00</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Motivo del Rechazo <span class="required">*</span></label>
+                    <select>
+                        <option value="">Seleccione un motivo...</option>
+                        <option value="precio">Precio elevado</option>
+                        <option value="proveedor">Proveedor no autorizado</option>
+                        <option value="cantidad">Cantidad excesiva</option>
+                        <option value="prioridad">Producto no prioritario</option>
+                        <option value="presupuesto">Presupuesto insuficiente</option>
+                        <option value="otro">Otro (especificar)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Detalles Adicionales <span class="required">*</span></label>
+                    <textarea placeholder="Explique el motivo del rechazo y sugerencias para el solicitante..." required></textarea>
+                </div>
+
+                <p style="font-size: 13px; color: #e74c3c; text-align: center; font-weight: 600;">
+                    ¿Está seguro de rechazar esta orden de compra?
+                </p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-confirm" style="background-color: #e74c3c;">Confirmar Rechazo</button>
+                <button class="btn-modal btn-cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Solicitar Modificación (Oculto) -->
+    <div class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-title">📝 Solicitar Modificaciones</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Aspectos a Modificar <span class="required">*</span></label>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox"> Cantidad de productos
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox"> Precios unitarios
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox"> Proveedor
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox"> Condiciones de pago
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox"> Productos incluidos
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Detalles de las Modificaciones Solicitadas <span class="required">*</span></label>
+                    <textarea placeholder="Especifique claramente qué cambios se requieren y por qué..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-confirm" style="background-color: #f39c12;">Enviar Solicitud</button>
+                <button class="btn-modal btn-cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

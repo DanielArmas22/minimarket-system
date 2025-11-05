@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { Role, CreateRoleRequest, UpdateRoleRequest, StrapiResponse, RolePermissions } from '../types';
-
-const API_URL = import.meta.env.VITE_URL_API;
+import { API_URL, API_KEY } from '../lib/env';
 
 class RoleService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    if (API_KEY) return { Authorization: `Bearer ${API_KEY}` };
+    const token = localStorage.getItem('token') || localStorage.getItem('jwt');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 

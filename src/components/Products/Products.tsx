@@ -47,8 +47,8 @@ export const Products: React.FC<ProductsProps> = ({
   const obtenerProductos = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products?populate=category`);
-      console.log('Productos obtenidos:', response.data);
-      
+      console.log('Productos obtenidos:', response.data.data);
+
       if (response.data && response.data.data) {
         setProducts(response.data.data);
       }
@@ -64,7 +64,7 @@ export const Products: React.FC<ProductsProps> = ({
         `${import.meta.env.VITE_URL_API}/api/price-history-products?filters[product][id][$eq]=${productId}&populate=product&sort=fechaActualizacion:desc`
       );
       console.log('Historial obtenido:', response.data);
-      
+
       if (response.data && response.data.data) {
         setPriceHistory(response.data.data);
       }
@@ -84,7 +84,7 @@ export const Products: React.FC<ProductsProps> = ({
     try {
       const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/promotions`);
       console.log('Promociones obtenidas:', response.data);
-      
+
       if (response.data && response.data.data) {
         setPromotions(response.data.data);
       }
@@ -101,10 +101,10 @@ export const Products: React.FC<ProductsProps> = ({
         `${import.meta.env.VITE_URL_API}/api/producto-promocions?populate=*`
       );
       console.log('Todas las promociones de productos:', response.data);
-      
+
       if (response.data && response.data.data) {
         // Filtrar en el cliente las promociones de este producto y que tengan promotion no null
-        const filtered = response.data.data.filter((pp: any) => 
+        const filtered = response.data.data.filter((pp: any) =>
           pp.product?.id === productId && pp.promotion !== null
         );
         console.log('Promociones filtradas para producto', productId, ':', filtered);
@@ -128,7 +128,7 @@ export const Products: React.FC<ProductsProps> = ({
 
     try {
       const token = localStorage.getItem('jwt');
-      
+
       // Intentar diferentes estructuras según la versión de Strapi
       const dataV5 = {
         data: {
@@ -138,9 +138,9 @@ export const Products: React.FC<ProductsProps> = ({
       };
 
       console.log('Datos a enviar:', JSON.stringify(dataV5, null, 2));
-      
+
       const response = await axios.post(
-        `${import.meta.env.VITE_URL_API}/api/producto-promocions`, 
+        `${import.meta.env.VITE_URL_API}/api/producto-promocions`,
         dataV5,
         {
           headers: token ? {
@@ -149,7 +149,7 @@ export const Products: React.FC<ProductsProps> = ({
         }
       );
       console.log('Promoción añadida al producto:', response.data);
-      
+
       // Recargar promociones del producto
       await obtenerPromocionesProducto(selectedProduct.id);
       setShowPromotionForm(false);
@@ -165,7 +165,7 @@ export const Products: React.FC<ProductsProps> = ({
           data: error.config?.data
         }
       });
-      
+
       const errorMsg = error.response?.data?.error?.message || error.message || 'Error desconocido';
       alert(`Error al añadir la promoción:\n${errorMsg}`);
     }
@@ -175,7 +175,7 @@ export const Products: React.FC<ProductsProps> = ({
     try {
       await axios.delete(`${import.meta.env.VITE_URL_API}/api/producto-promocions/${productPromotion.documentId}`);
       console.log('Promoción eliminada');
-      
+
       // Recargar promociones del producto
       if (selectedProduct) {
         await obtenerPromocionesProducto(selectedProduct.id);
@@ -187,13 +187,13 @@ export const Products: React.FC<ProductsProps> = ({
   };
 
   const filteredProducts = products.filter(product =>
-    product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.barCode.includes(searchTerm)
+    product.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.barCode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const productData = {
         data: {
@@ -210,7 +210,7 @@ export const Products: React.FC<ProductsProps> = ({
         // Verificar si el precio cambió
         const precioAnterior = editingProduct.precioUnitario;
         const precioNuevo = formData.precioUnitario;
-        
+
         // Actualizar producto existente usando documentId
         const response = await axios.put(
           `${import.meta.env.VITE_URL_API}/api/products/${editingProduct.documentId}`,
@@ -434,7 +434,7 @@ export const Products: React.FC<ProductsProps> = ({
               <TableRow key={product.id}>
                 <TableCell className="font-medium text-center">{product.descripcion}</TableCell>
                 <TableCell className="text-center">{product.barCode}</TableCell>
-                <TableCell className="text-center">${product.precioUnitario.toFixed(2)}</TableCell>
+                <TableCell className="text-center">${product.precioUnitario ? parseFloat(product.precioUnitario.toFixed(2)) : '0.00'}</TableCell>
                 <TableCell className="text-center">
                   <span className={`${parseInt(product.stock) <= product.stockMin ? 'text-red-600 font-semibold' : ''}`}>
                     {product.stock}
@@ -514,7 +514,7 @@ export const Products: React.FC<ProductsProps> = ({
               Registro de cambios de precio del producto
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="max-h-96 overflow-y-auto">
             <Table>
               <TableHeader>
@@ -537,7 +537,7 @@ export const Products: React.FC<ProductsProps> = ({
                         })}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        ${history.precio?.toFixed(2) || '0.00'}
+                        ${history.precio ? history.precio.toFixed(2) : '0.00'}
                       </TableCell>
                     </TableRow>
                   ))
@@ -551,7 +551,7 @@ export const Products: React.FC<ProductsProps> = ({
               </TableBody>
             </Table>
           </div>
-          
+
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowHistory(false)}>
               Cerrar
@@ -571,11 +571,11 @@ export const Products: React.FC<ProductsProps> = ({
               Asigna o elimina promociones para este producto
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="space-y-4">
             {/* Botón para añadir nueva promoción */}
             <div className="flex justify-end">
-              <Button 
+              <Button
                 onClick={() => setShowPromotionForm(!showPromotionForm)}
                 size="sm"
               >
@@ -604,8 +604,8 @@ export const Products: React.FC<ProductsProps> = ({
                   <Button onClick={handleAddPromotion} disabled={!selectedPromotion}>
                     Agregar
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setShowPromotionForm(false);
                       setSelectedPromotion(null);
@@ -637,7 +637,7 @@ export const Products: React.FC<ProductsProps> = ({
                     productPromotions.map((pp) => {
                       // Validar que promotion no sea null
                       if (!pp.promotion) return null;
-                      
+
                       return (
                         <TableRow key={pp.id}>
                           <TableCell>{pp.promotion.descripcion}</TableCell>
@@ -653,11 +653,10 @@ export const Products: React.FC<ProductsProps> = ({
                           </TableCell>
                           <TableCell>{pp.promotion.cantidadProducto}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              pp.promotion.estado 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`px-2 py-1 rounded text-xs ${pp.promotion.estado
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}>
                               {pp.promotion.estado ? 'Activa' : 'Inactiva'}
                             </span>
                           </TableCell>
@@ -684,7 +683,7 @@ export const Products: React.FC<ProductsProps> = ({
               </Table>
             </div>
           </div>
-          
+
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowPromotions(false);

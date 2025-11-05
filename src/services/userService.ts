@@ -1,4 +1,5 @@
 import { Customer, Role } from '../types';
+import { API_URL, API_KEY } from '../lib/env';
 
 // Interfaces para el manejo de usuarios
 export interface CreateUserData {
@@ -42,7 +43,7 @@ export interface RoleResponse {
 }
 
 class UserService {
-  private baseURL = 'http://localhost:1337/api';
+  private baseURL = `${API_URL}/api`;
 
   private async makeRequest<T>(
     endpoint: string,
@@ -51,6 +52,7 @@ class UserService {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
+        ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
         ...options.headers,
       },
       ...options,

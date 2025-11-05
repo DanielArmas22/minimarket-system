@@ -1,9 +1,9 @@
-// Puedes poner esto en un archivo como src/services/authService.ts
+import { API_URL, API_KEY } from '../lib/env';
 
 export async function registerUser({ username, email, password }: { username: string, email: string, password: string }) {
-  const res = await fetch('http://localhost:1337/api/auth/local/register', {
+  const res = await fetch(`${API_URL}/api/auth/local/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}) },
     body: JSON.stringify({ username, email, password }),
   });
 
