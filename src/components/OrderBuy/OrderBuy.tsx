@@ -11,6 +11,7 @@ export const OrderBuyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmReceive, setShowConfirmReceive] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderBuy | null>(null);
   const [orders, setOrders] = useState<OrderBuy[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -18,7 +19,7 @@ export const OrderBuyComponent: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<number | null>(null);
   const [igv, setIgv] = useState<number>(18);
   const [fechaEntrega, setFechaEntrega] = useState<string>('');
-  const [orderDetails, setOrderDetails] = useState<Array<{product: number, cantidad: number, productName: string}>>([]);
+  const [orderDetails, setOrderDetails] = useState<Array<{ product: number, cantidad: number, productName: string }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [cantidad, setCantidad] = useState<number>(1);
 
@@ -33,9 +34,9 @@ export const OrderBuyComponent: React.FC = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_URL_API}/api/order-buys?populate=*`
       );
-      console.log('Órdenes obtenidas:', response.data);
-      
-      if (response.data && response.data.data) {
+      console.log('Órdenes obtenidas:', response.data.data);
+
+      if (response.data.data) {
         setOrders(response.data.data);
       }
     } catch (error) {
@@ -48,7 +49,7 @@ export const OrderBuyComponent: React.FC = () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/providers`);
       console.log('Proveedores obtenidos:', response.data);
-      
+
       if (response.data && response.data.data) {
         setProviders(response.data.data);
       }
@@ -62,7 +63,7 @@ export const OrderBuyComponent: React.FC = () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products`);
       console.log('Productos obtenidos:', response.data);
-      
+
       if (response.data && response.data.data) {
         setProducts(response.data.data);
       }
@@ -72,9 +73,10 @@ export const OrderBuyComponent: React.FC = () => {
     }
   };
 
-  const filteredOrders = orders.filter(order =>
-    order.provider?.razonSocial.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrders = orders
+  // .filter(order =>
+  //   order.provider?.razonSocial.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
 
   const agregarProductoDetalle = () => {
     if (!selectedProduct || cantidad <= 0) {
@@ -101,7 +103,7 @@ export const OrderBuyComponent: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedProvider) {
       alert('Seleccione un proveedor');
       return;
@@ -303,7 +305,7 @@ export const OrderBuyComponent: React.FC = () => {
 
             <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-4">Agregar Productos</h3>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="col-span-2">
                   <Label htmlFor="product">Producto</Label>
@@ -430,7 +432,7 @@ export const OrderBuyComponent: React.FC = () => {
                   {new Date(order.fechaOrden).toLocaleDateString('es-PE')}
                 </TableCell>
                 <TableCell className="text-center">
-                  {order.fechaEntrega 
+                  {order.fechaEntrega
                     ? new Date(order.fechaEntrega).toLocaleDateString('es-PE')
                     : '-'}
                 </TableCell>
@@ -444,12 +446,11 @@ export const OrderBuyComponent: React.FC = () => {
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    order.estado 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-orange-100 text-orange-800'
-                  }`}>
-                    {order.estado ? 'Entregada' : 'Pendiente'}
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.estado
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-orange-100 text-orange-800'
+                    }`}>
+                    {order.estado === 'pendiente' ? 'Pendiente' : 'Completado'}
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
@@ -505,7 +506,7 @@ export const OrderBuyComponent: React.FC = () => {
               <div>
                 <Label>Fecha Entrega Estimada</Label>
                 <p className="font-semibold">
-                  {selectedOrder.fechaEntrega 
+                  {selectedOrder.fechaEntrega
                     ? new Date(selectedOrder.fechaEntrega).toLocaleDateString('es-PE')
                     : '-'}
                 </p>
@@ -516,8 +517,8 @@ export const OrderBuyComponent: React.FC = () => {
               </div>
               <div>
                 <Label>Estado</Label>
-                <p className={`font-semibold ${selectedOrder.estado ? 'text-green-600' : 'text-orange-600'}`}>
-                  {selectedOrder.estado ? 'Entregada' : 'Pendiente'}
+                <p className={`font-semibold ${selectedOrder.estado === 'pendiente' ? 'text-orange-600' : 'text-green-600'}`}>
+                  {selectedOrder.estado === 'pendiente' ? 'Pendiente' : 'Completado'}
                 </p>
               </div>
             </div>
@@ -542,25 +543,44 @@ export const OrderBuyComponent: React.FC = () => {
               </Table>
             </div>
 
-            {!selectedOrder.estado && (
+            {selectedOrder.estado === 'pendiente' && (
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Cerrar
                 </Button>
-                <Button onClick={handleMarcarEntregado} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={() => setShowConfirmReceive(true)} className="bg-green-600 hover:bg-green-700">
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Marcar como Entregada
                 </Button>
               </div>
             )}
 
-            {selectedOrder.estado && (
+            {selectedOrder.estado !== 'pendiente' && (
               <div className="flex justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Cerrar
                 </Button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Marcar como Entregada */}
+      {showConfirmReceive && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Confirmar Recepción de Orden</h3>
+            <div className="bg-gray-50 rounded-md p-4 text-sm mb-4">
+              <div className="flex justify-between mb-1"><span>Orden:</span><span className="font-semibold">#{selectedOrder.id}</span></div>
+              <div className="flex justify-between mb-1"><span>Proveedor:</span><span className="font-semibold">{selectedOrder.provider?.razonSocial || '-'}</span></div>
+              <div className="flex justify-between mb-1"><span>Productos:</span><span className="font-semibold">{selectedOrder.detail_order_buys?.length || 0}</span></div>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">¿Está seguro de marcar esta orden como entregada? Se actualizará el stock de los productos.</p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowConfirmReceive(false)}>Cancelar</Button>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={() => { setShowConfirmReceive(false); handleMarcarEntregado(); }}>Confirmar</Button>
+            </div>
           </div>
         </div>
       )}
