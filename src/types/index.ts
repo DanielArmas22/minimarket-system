@@ -89,6 +89,137 @@ export interface typePayment {
   estado: boolean;
 }
 
+export interface CashRegister {
+  id: number;
+  documentId?: string;
+  openingDate: string;
+  closingDate?: string;
+  initialAmount: number;
+  expectedAmount?: number;
+  actualAmount?: number;
+  difference?: number;
+  status: 'open' | 'closed';
+  notes?: string;
+  users_permissions_user?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  sales?: Sale[];
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface CashRegisterSummary {
+  initialAmount: number;
+  totalSales: number;
+  expectedAmount: number;
+  actualAmount: number;
+  difference: number;
+}
+
+export type AdjustmentType = 'increase' | 'decrease';
+export type AdjustmentReason = 'merma' | 'conteo' | 'daño' | 'devolucion' | 'correccion' | 'otro';
+
+export interface InventoryAdjustment {
+  id: number;
+  documentId?: string;
+  adjustmentDate: string;
+  adjustmentType: AdjustmentType;
+  quantity: number;
+  reason: AdjustmentReason;
+  reasonDescription?: string;
+  previousStock: number;
+  newStock: number;
+  product?: Product;
+  users_permissions_user?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface InventoryAdjustmentSummary {
+  productId: number;
+  productDescription: string;
+  adjustmentType: AdjustmentType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  difference: number;
+}
+
+export type OrderBuyStatus = 'pendiente' | 'recibida' | 'cancelada';
+
+export interface Provider {
+  id: number;
+  documentId?: string;
+  razonSocial: string;
+  ruc: string;
+  direccion?: string;
+  telefono?: string;
+  email?: string;
+  contacto?: string;
+  estado?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface DetailOrderBuy {
+  id: number;
+  documentId?: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+  product?: Product;
+  order_buy?: OrderBuy;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface OrderBuy {
+  id: number;
+  documentId?: string;
+  fechaOrden: string;
+  estado: OrderBuyStatus;
+  subtotal: number;
+  igv: number;
+  total: number;
+  observaciones?: string;
+  provider?: Provider;
+  detail_order_buys?: DetailOrderBuy[];
+  users_permissions_user?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+}
+
+export interface OrderBuySummary {
+  orderId: number;
+  provider: string;
+  totalProductos: number;
+  subtotal: number;
+  igv: number;
+  total: number;
+}
+
+export interface UpdatedProduct {
+  productId: number;
+  productName: string;
+  previousStock: number;
+  addedQuantity: number;
+  newStock: number;}
+
 export interface Promotion {
   id: number;
   documentId: string;

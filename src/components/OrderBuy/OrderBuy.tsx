@@ -1,274 +1,396 @@
 import React, { useState, useEffect } from 'react';
-import { OrderBuy, Provider, Product, DetailOrderBuy } from '../../types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Search, ShoppingCart, Package, Eye, X, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import { ShoppingCart, Plus, Trash2, Check, X, Eye } from 'lucide-react';
+import { OrderBuy as OrderBuyType, Product, Provider, OrderBuyStatus } from '../../types';
+import { orderBuyService } from '../../services/orderBuyService';
+import { providerService } from '../../services/providerService';
+import { useToast } from '../../hooks/use-toast';
 
-export const OrderBuyComponent: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<OrderBuy | null>(null);
-  const [orders, setOrders] = useState<OrderBuy[]>([]);
+interface OrderBuyProps {
+  products: Product[];
+}
+
+interface OrderProduct {
+  productId: number;
+  productName: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+export const OrderBuy: React.FC<OrderBuyProps> = ({ products }) => {
+  const [orders, setOrders] = useState<OrderBuyType[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<number | null>(null);
-  const [igv, setIgv] = useState<number>(18);
-  const [fechaEntrega, setFechaEntrega] = useState<string>('');
-  const [orderDetails, setOrderDetails] = useState<Array<{product: number, cantidad: number, productName: string}>>([]);
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
-  const [cantidad, setCantidad] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderBuyType | null>(null);
+  
+  // Form state
+  const [selectedProviderId, setSelectedProviderId] = useState<number>(0);
+  const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<number>(0);
+  const [cantidad, setCantidad] = useState('');
+  const [precioUnitario, setPrecioUnitario] = useState('');
+  const [igvPorcentaje, setIgvPorcentaje] = useState('18');
+  const [observaciones, setObservaciones] = useState('');
+
+  const { toast } = useToast();
 
   useEffect(() => {
-    obtenerOrdenes();
-    obtenerProveedores();
-    obtenerProductos();
+    loadOrders();
+    loadProviders();
   }, []);
 
-  const obtenerOrdenes = async () => {
+  const loadOrders = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_URL_API}/api/order-buys?populate=*`
-      );
-      console.log('Órdenes obtenidas:', response.data);
-      
-      if (response.data && response.data.data) {
-        setOrders(response.data.data);
-      }
+      setIsLoading(true);
+      const response = await orderBuyService.getAllOrders();
+      setOrders(response.data || []);
     } catch (error) {
-      console.error('Error al obtener órdenes:', error);
-      setOrders([]);
+      console.error('Error al cargar órdenes:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const obtenerProveedores = async () => {
+  const loadProviders = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/providers`);
-      console.log('Proveedores obtenidos:', response.data);
-      
-      if (response.data && response.data.data) {
-        setProviders(response.data.data);
-      }
+      const response = await providerService.getAllProviders();
+      setProviders(response.data || []);
     } catch (error) {
-      console.error('Error al obtener proveedores:', error);
-      setProviders([]);
+      console.error('Error al cargar proveedores:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los proveedores',
+        variant: 'destructive',
+      });
     }
   };
 
-  const obtenerProductos = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_URL_API}/api/products`);
-      console.log('Productos obtenidos:', response.data);
-      
-      if (response.data && response.data.data) {
-        setProducts(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error al obtener productos:', error);
-      setProducts([]);
-    }
-  };
-
-  const filteredOrders = orders.filter(order =>
-    order.provider?.razonSocial.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const agregarProductoDetalle = () => {
-    if (!selectedProduct || cantidad <= 0) {
-      alert('Seleccione un producto y cantidad válida');
+  const handleAddProduct = () => {
+    if (!selectedProductId || !cantidad || !precioUnitario) {
+      toast({
+        title: 'Error',
+        description: 'Complete todos los campos del producto',
+        variant: 'destructive',
+      });
       return;
     }
 
-    const product = products.find(p => p.id === selectedProduct);
+    const product = products.find(p => p.id === selectedProductId);
     if (!product) return;
 
-    setOrderDetails([...orderDetails, {
-      product: selectedProduct,
-      cantidad: cantidad,
-      productName: product.descripcion
-    }]);
+    const cantidadNum = parseInt(cantidad);
+    const precioNum = parseFloat(precioUnitario);
 
-    setSelectedProduct(null);
-    setCantidad(1);
-  };
-
-  const eliminarProductoDetalle = (index: number) => {
-    setOrderDetails(orderDetails.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedProvider) {
-      alert('Seleccione un proveedor');
+    if (cantidadNum <= 0 || precioNum <= 0) {
+      toast({
+        title: 'Error',
+        description: 'La cantidad y el precio deben ser mayores a 0',
+        variant: 'destructive',
+      });
       return;
     }
 
-    if (orderDetails.length === 0) {
-      alert('Agregue al menos un producto');
+    const newProduct: OrderProduct = {
+      productId: product.id,
+      productName: product.descripcion,
+      cantidad: cantidadNum,
+      precioUnitario: precioNum,
+      subtotal: cantidadNum * precioNum,
+    };
+
+    setOrderProducts([...orderProducts, newProduct]);
+    setSelectedProductId(0);
+    setCantidad('');
+    setPrecioUnitario('');
+  };
+
+  const handleRemoveProduct = (index: number) => {
+    setOrderProducts(orderProducts.filter((_, i) => i !== index));
+  };
+
+  const calculateTotals = () => {
+    const subtotal = orderProducts.reduce((sum, p) => sum + p.subtotal, 0);
+    const igv = subtotal * (parseFloat(igvPorcentaje) / 100);
+    const total = subtotal + igv;
+    return { subtotal, igv, total };
+  };
+
+  const handleCreateOrder = async () => {
+    if (!selectedProviderId) {
+      toast({
+        title: 'Error',
+        description: 'Seleccione un proveedor',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (orderProducts.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Agregue al menos un producto',
+        variant: 'destructive',
+      });
       return;
     }
 
     try {
-      const token = localStorage.getItem('jwt');
+      setIsLoading(true);
+      const response = await orderBuyService.createOrder({
+        providerId: selectedProviderId,
+        productos: orderProducts.map(p => ({
+          productId: p.productId,
+          cantidad: p.cantidad,
+          precioUnitario: p.precioUnitario,
+        })),
+        igvPorcentaje: parseFloat(igvPorcentaje),
+        observaciones: observaciones || undefined,
+      });
 
-      // Crear la orden de compra
-      const orderData = {
-        data: {
-          fechaOrden: new Date().toISOString(),
-          FechaEntrega: fechaEntrega ? new Date(fechaEntrega).toISOString() : null,
-          estado: false, // false = pendiente, true = entregado
-          igv: igv,
-          provider: selectedProvider
-        }
-      };
+      toast({
+        title: 'Orden creada',
+        description: response.message,
+      });
 
-      console.log('Creando orden:', orderData);
+      resetForm();
+      setShowCreateModal(false);
+      loadOrders();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al crear orden',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      const orderResponse = await axios.post(
-        `${import.meta.env.VITE_URL_API}/api/order-buys`,
-        orderData,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        }
-      );
+  const handleReceiveOrder = async (orderId: number) => {
+    if (!confirm('¿Está seguro de recibir esta orden? Se actualizará el stock de todos los productos.')) {
+      return;
+    }
 
-      console.log('Orden creada:', orderResponse.data);
+    try {
+      setIsLoading(true);
+      const response = await orderBuyService.receiveOrder({ orderId });
 
-      const orderId = orderResponse.data.data.id;
+      toast({
+        title: 'Orden recibida',
+        description: response.message,
+      });
 
-      // Crear los detalles de la orden
-      for (const detail of orderDetails) {
-        const detailData = {
-          data: {
-            cantidad: detail.cantidad,
-            product: detail.product,
-            order_buy: orderId
-          }
-        };
-
-        await axios.post(
-          `${import.meta.env.VITE_URL_API}/api/detail-order-buys`,
-          detailData,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-          }
-        );
-
-        // NO actualizar el stock aún, se actualizará cuando se marque como entregado
+      if (response.updatedProducts && response.updatedProducts.length > 0) {
+        const updates = response.updatedProducts.map(p => 
+          `${p.productName}: ${p.previousStock} → ${p.newStock}`
+        ).join('\n');
+        
+        toast({
+          title: 'Stock actualizado',
+          description: updates,
+        });
       }
 
-      alert('Orden de compra registrada exitosamente. Stock actualizado.');
-      resetForm();
-      await obtenerOrdenes();
-      await obtenerProductos();
+      loadOrders();
     } catch (error: any) {
-      console.error('Error al guardar orden:', error);
-      alert(`Error al guardar la orden: ${error.response?.data?.error?.message || 'Por favor, intente nuevamente.'}`);
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al recibir orden',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: number) => {
+    const motivo = prompt('Ingrese el motivo de la cancelación:');
+    if (!motivo) return;
+
+    try {
+      setIsLoading(true);
+      const response = await orderBuyService.cancelOrder({ orderId, motivo });
+
+      toast({
+        title: 'Orden cancelada',
+        description: response.message,
+      });
+
+      loadOrders();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al cancelar orden',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetForm = () => {
-    setSelectedProvider(null);
-    setIgv(18);
-    setFechaEntrega('');
-    setOrderDetails([]);
-    setSelectedProduct(null);
-    setCantidad(1);
-    setShowForm(false);
+    setSelectedProviderId(0);
+    setOrderProducts([]);
+    setSelectedProductId(0);
+    setCantidad('');
+    setPrecioUnitario('');
+    setIgvPorcentaje('18');
+    setObservaciones('');
   };
 
-  const handleVerDetalles = (order: OrderBuy) => {
-    setSelectedOrder(order);
-    setShowModal(true);
-  };
-
-  const handleMarcarEntregado = async () => {
-    if (!selectedOrder) return;
-
-    try {
-      const token = localStorage.getItem('jwt');
-
-      const updateData = {
-        data: {
-          estado: true,
-          FechaEntrega: new Date().toISOString()
-        }
-      };
-
-      console.log('Actualizando orden:', selectedOrder.documentId);
-      console.log('Datos a enviar:', updateData);
-
-      // Actualizar la orden a estado entregado con la fecha actual
-      const response = await axios.put(
-        `${import.meta.env.VITE_URL_API}/api/order-buys/${selectedOrder.documentId}`,
-        updateData,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        }
-      );
-
-      console.log('Respuesta actualización orden:', response.data);
-
-      // Actualizar el stock de cada producto
-      if (selectedOrder.detail_order_buys && selectedOrder.detail_order_buys.length > 0) {
-        for (const detail of selectedOrder.detail_order_buys) {
-          const product = products.find(p => p.id === detail.product?.id);
-          if (product) {
-            const nuevoStock = parseInt(product.stock) + detail.cantidad;
-            await axios.put(
-              `${import.meta.env.VITE_URL_API}/api/products/${product.documentId}`,
-              {
-                data: {
-                  stock: nuevoStock.toString()
-                }
-              },
-              {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-              }
-            );
-          }
-        }
-      }
-
-      alert('Orden marcada como entregada y stock actualizado');
-      setShowModal(false);
-      setSelectedOrder(null);
-      await obtenerOrdenes();
-      await obtenerProductos();
-    } catch (error: any) {
-      console.error('Error al marcar como entregado:', error);
-      console.error('Detalles del error:', error.response?.data);
-      alert(`Error: ${error.response?.data?.error?.message || error.message || 'No se pudo actualizar la orden'}`);
+  const getStatusColor = (estado: OrderBuyStatus) => {
+    switch (estado) {
+      case 'pendiente':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'recibida':
+        return 'bg-green-100 text-green-800';
+      case 'cancelada':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (showForm) {
-    return (
-      <div className="p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Nueva Orden de Compra</h2>
-            <Button variant="outline" onClick={resetForm}>
-              Cancelar
-            </Button>
-          </div>
+  const getStatusLabel = (estado: OrderBuyStatus) => {
+    switch (estado) {
+      case 'pendiente':
+        return 'Pendiente';
+      case 'recibida':
+        return 'Recibida';
+      case 'cancelada':
+        return 'Cancelada';
+      default:
+        return estado;
+    }
+  };
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+  const totals = calculateTotals();
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Órdenes de Compra</h2>
+          <p className="text-gray-600">Gestión de órdenes de compra a proveedores</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <Plus className="h-5 w-5" />
+          Nueva Orden
+        </button>
+      </div>
+
+      {/* Lista de órdenes */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Orden #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Fecha
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Proveedor
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estado
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {orders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    #{order.id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {new Date(order.fechaOrden).toLocaleDateString('es-ES')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {order.provider?.razonSocial || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                    S/ {order.total.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.estado)}`}>
+                      {getStatusLabel(order.estado)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowDetailModal(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      <Eye className="h-4 w-4 inline" />
+                    </button>
+                    {order.estado === 'pendiente' && (
+                      <>
+                        <button
+                          onClick={() => handleReceiveOrder(order.id)}
+                          className="text-green-600 hover:text-green-900"
+                          disabled={isLoading}
+                        >
+                          <Check className="h-4 w-4 inline" />
+                        </button>
+                        <button
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="text-red-600 hover:text-red-900"
+                          disabled={isLoading}
+                        >
+                          <X className="h-4 w-4 inline" />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {orders.length === 0 && (
+          <div className="text-center py-12">
+            <ShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-500">No hay órdenes de compra registradas</p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Crear Orden */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Nueva Orden de Compra</h3>
+            
+            <div className="space-y-4">
+              {/* Proveedor */}
               <div>
-                <Label htmlFor="provider">Proveedor</Label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Proveedor *
+                </label>
                 <select
-                  id="provider"
-                  value={selectedProvider || ''}
-                  onChange={(e) => setSelectedProvider(Number(e.target.value))}
-                  className="w-full border rounded-md p-2"
-                  required
+                  value={selectedProviderId}
+                  onChange={(e) => setSelectedProviderId(parseInt(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Seleccione un proveedor</option>
+                  <option value={0}>Seleccione un proveedor</option>
                   {providers.map((provider) => (
                     <option key={provider.id} value={provider.id}>
                       {provider.razonSocial} - {provider.ruc}
@@ -277,297 +399,241 @@ export const OrderBuyComponent: React.FC = () => {
                 </select>
               </div>
 
-              <div>
-                <Label htmlFor="fechaEntrega">Fecha Entrega Estimada</Label>
-                <Input
-                  id="fechaEntrega"
-                  type="date"
-                  value={fechaEntrega}
-                  onChange={(e) => setFechaEntrega(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="igv">IGV (%)</Label>
-                <Input
-                  id="igv"
-                  type="number"
-                  step="0.01"
-                  value={igv}
-                  onChange={(e) => setIgv(parseFloat(e.target.value))}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-4">Agregar Productos</h3>
-              
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="col-span-2">
-                  <Label htmlFor="product">Producto</Label>
+              {/* Agregar Productos */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Agregar Productos</h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <select
-                    id="product"
-                    value={selectedProduct || ''}
-                    onChange={(e) => setSelectedProduct(Number(e.target.value))}
-                    className="w-full border rounded-md p-2"
+                    value={selectedProductId}
+                    onChange={(e) => setSelectedProductId(parseInt(e.target.value))}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Seleccione un producto</option>
+                    <option value={0}>Seleccione producto</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.descripcion} (Stock actual: {product.stock})
+                        {product.descripcion}
                       </option>
                     ))}
                   </select>
-                </div>
-
-                <div>
-                  <Label htmlFor="cantidad">Cantidad</Label>
-                  <Input
-                    id="cantidad"
+                  <input
                     type="number"
                     min="1"
                     value={cantidad}
-                    onChange={(e) => setCantidad(parseInt(e.target.value))}
+                    onChange={(e) => setCantidad(e.target.value)}
+                    placeholder="Cantidad"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={precioUnitario}
+                    onChange={(e) => setPrecioUnitario(e.target.value)}
+                    placeholder="Precio unitario"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleAddProduct}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Plus className="h-5 w-5 inline" />
+                  </button>
                 </div>
               </div>
 
-              <Button type="button" onClick={agregarProductoDetalle} variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Producto
-              </Button>
-
-              {orderDetails.length > 0 && (
-                <div className="mt-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Producto</TableHead>
-                        <TableHead>Cantidad</TableHead>
-                        <TableHead>Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orderDetails.map((detail, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{detail.productName}</TableCell>
-                          <TableCell>{detail.cantidad}</TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => eliminarProductoDetalle(index)}
+              {/* Lista de Productos */}
+              {orderProducts.length > 0 && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Producto</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Cantidad</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Precio Unit.</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Subtotal</th>
+                        <th className="px-4 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {orderProducts.map((product, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-2 text-sm">{product.productName}</td>
+                          <td className="px-4 py-2 text-sm">{product.cantidad}</td>
+                          <td className="px-4 py-2 text-sm">S/ {product.precioUnitario.toFixed(2)}</td>
+                          <td className="px-4 py-2 text-sm font-semibold">S/ {product.subtotal.toFixed(2)}</td>
+                          <td className="px-4 py-2">
+                            <button
+                              onClick={() => handleRemoveProduct(index)}
+                              className="text-red-600 hover:text-red-900"
                             >
                               <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                            </button>
+                          </td>
+                        </tr>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
               )}
-            </div>
 
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" className="flex-1">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Registrar Orden
-              </Button>
-              <Button type="button" variant="outline" onClick={resetForm}>
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
+              {/* Totales */}
+              {orderProducts.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span className="font-semibold">S/ {totals.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm items-center">
+                    <span>IGV ({igvPorcentaje}%):</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={igvPorcentaje}
+                        onChange={(e) => setIgvPorcentaje(e.target.value)}
+                        className="w-16 px-2 py-1 border border-gray-300 rounded text-right"
+                      />
+                      <span className="font-semibold">S/ {totals.igv.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold border-t pt-2">
+                    <span>Total:</span>
+                    <span>S/ {totals.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
 
-  return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Órdenes de Compra</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Orden
-        </Button>
-      </div>
+              {/* Observaciones */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observaciones (opcional)
+                </label>
+                <textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  placeholder="Detalles adicionales de la orden..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Buscar por proveedor..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center">Fecha Orden</TableHead>
-              <TableHead className="text-center">Fecha Entrega</TableHead>
-              <TableHead className="text-center">Proveedor</TableHead>
-              <TableHead className="text-center">RUC</TableHead>
-              <TableHead className="text-center">IGV (%)</TableHead>
-              <TableHead className="text-center">Productos</TableHead>
-              <TableHead className="text-center">Estado</TableHead>
-              <TableHead className="text-center">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="text-center">
-                  {new Date(order.fechaOrden).toLocaleDateString('es-PE')}
-                </TableCell>
-                <TableCell className="text-center">
-                  {order.fechaEntrega 
-                    ? new Date(order.fechaEntrega).toLocaleDateString('es-PE')
-                    : '-'}
-                </TableCell>
-                <TableCell className="text-center">{order.provider?.razonSocial}</TableCell>
-                <TableCell className="text-center">{order.provider?.ruc}</TableCell>
-                <TableCell className="text-center">{order.igv}%</TableCell>
-                <TableCell className="text-center">
-                  <span className="inline-flex items-center">
-                    <Package className="h-4 w-4 mr-1" />
-                    {order.detail_order_buys?.length || 0}
-                  </span>
-                </TableCell>
-                <TableCell className="text-center">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    order.estado 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-orange-100 text-orange-800'
-                  }`}>
-                    {order.estado ? 'Entregada' : 'Pendiente'}
-                  </span>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    onClick={() => handleVerDetalles(order)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Ver Detalles
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Modal de Detalles */}
-      {showModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Detalles de la Orden</h3>
-              <Button variant="outline" size="sm" onClick={() => setShowModal(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <Label>Proveedor</Label>
-                <p className="font-semibold">{selectedOrder.provider?.razonSocial}</p>
-              </div>
-              <div>
-                <Label>RUC</Label>
-                <p className="font-semibold">{selectedOrder.provider?.ruc}</p>
-              </div>
-              <div>
-                <Label>Teléfono</Label>
-                <p className="font-semibold">{selectedOrder.provider?.telefono || '-'}</p>
-              </div>
-              <div>
-                <Label>Email</Label>
-                <p className="font-semibold">{selectedOrder.provider?.email || '-'}</p>
-              </div>
-              <div>
-                <Label>Fecha de Orden</Label>
-                <p className="font-semibold">
-                  {new Date(selectedOrder.fechaOrden).toLocaleDateString('es-PE')}
-                </p>
-              </div>
-              <div>
-                <Label>Fecha Entrega Estimada</Label>
-                <p className="font-semibold">
-                  {selectedOrder.fechaEntrega 
-                    ? new Date(selectedOrder.fechaEntrega).toLocaleDateString('es-PE')
-                    : '-'}
-                </p>
-              </div>
-              <div>
-                <Label>IGV</Label>
-                <p className="font-semibold">{selectedOrder.igv}%</p>
-              </div>
-              <div>
-                <Label>Estado</Label>
-                <p className={`font-semibold ${selectedOrder.estado ? 'text-green-600' : 'text-orange-600'}`}>
-                  {selectedOrder.estado ? 'Entregada' : 'Pendiente'}
-                </p>
+              {/* Botones */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    resetForm();
+                    setShowCreateModal(false);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateOrder}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  disabled={isLoading || orderProducts.length === 0}
+                >
+                  {isLoading ? 'Creando...' : 'Crear Orden'}
+                </button>
               </div>
             </div>
-
-            <div className="mb-6">
-              <h4 className="font-semibold mb-3">Productos</h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Producto</TableHead>
-                    <TableHead className="text-center">Cantidad</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedOrder.detail_order_buys?.map((detail, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{detail.product?.descripcion || 'Producto no disponible'}</TableCell>
-                      <TableCell className="text-center">{detail.cantidad}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {!selectedOrder.estado && (
-              <div className="flex justify-end gap-4 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowModal(false)}>
-                  Cerrar
-                </Button>
-                <Button onClick={handleMarcarEntregado} className="bg-green-600 hover:bg-green-700">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Marcar como Entregada
-                </Button>
-              </div>
-            )}
-
-            {selectedOrder.estado && (
-              <div className="flex justify-end pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowModal(false)}>
-                  Cerrar
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {filteredOrders.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No se encontraron órdenes de compra
+      {/* Modal de Detalle */}
+      {showDetailModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Detalle de Orden #{selectedOrder.id}</h3>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Información General */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
+                <div>
+                  <p className="text-sm text-gray-600">Fecha:</p>
+                  <p className="font-semibold">{new Date(selectedOrder.fechaOrden).toLocaleDateString('es-ES')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Estado:</p>
+                  <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(selectedOrder.estado)}`}>
+                    {getStatusLabel(selectedOrder.estado)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Proveedor:</p>
+                  <p className="font-semibold">{selectedOrder.provider?.razonSocial}</p>
+                  <p className="text-sm text-gray-500">RUC: {selectedOrder.provider?.ruc}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Usuario:</p>
+                  <p className="font-semibold">{selectedOrder.users_permissions_user?.username || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Productos */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Productos</h4>
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Producto</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Cantidad</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Precio Unit.</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {selectedOrder.detail_order_buys?.map((detail) => (
+                        <tr key={detail.id}>
+                          <td className="px-4 py-2 text-sm">{detail.product?.descripcion}</td>
+                          <td className="px-4 py-2 text-sm">{detail.cantidad}</td>
+                          <td className="px-4 py-2 text-sm">S/ {detail.precioUnitario.toFixed(2)}</td>
+                          <td className="px-4 py-2 text-sm font-semibold">S/ {detail.subtotal.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Totales */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span className="font-semibold">S/ {selectedOrder.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>IGV:</span>
+                  <span className="font-semibold">S/ {selectedOrder.igv.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total:</span>
+                  <span>S/ {selectedOrder.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Observaciones */}
+              {selectedOrder.observaciones && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Observaciones:</p>
+                  <p className="text-sm bg-gray-50 p-3 rounded-lg">{selectedOrder.observaciones}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
